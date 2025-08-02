@@ -1,45 +1,86 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+// app/(tabs)/_layout.tsx
+import React, { useEffect, useState } from 'react';
+import { useColorScheme, View } from 'react-native';
+import { Slot } from 'expo-router';
+import { PaperProvider, ActivityIndicator, Text, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import { useAsyncStorage } from '@react-native-async-storage/async-storage';
+import LoginPage from '.';
+import DrawerNavigator from '../(drawer)/DrawerNavigator';
+import AlertMessage from '@/components/Cards/AlertMessage';
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+export default function TabsLayout() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'info' | 'error' | 'success'>('info');
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { getItem, setItem } = useAsyncStorage('loggedIn');
+
+  const scheme = useColorScheme();
+
+  const theme = {
+    ...(scheme === 'dark' ? MD3DarkTheme : MD3LightTheme),
+    roundness: 2,
+    colors: {
+      ...(scheme === 'dark' ? MD3DarkTheme.colors : MD3LightTheme.colors),
+      primary: '#03045e',
+      secondary: '#0077b6',
+      tertiary: '#00b4d8',
+      quaternary: '#90e0ef',
+      lightness: '#caf0f8',
+    },
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      const loggedIn = await getItem();
+      setIsLoggedIn(loggedIn === 'true');
+      setIsLoading(false);
+    };
+    init();
+  }, []);
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+    await setItem('true');
+    setIsLoggedIn(true);
+    setIsLoading(false);
+    setAlertMessage('Login Successful');
+    setAlertType('success');
+    setAlertVisible(true);
+  };
+
+  const handleLogout = async () => {
+    await setItem('false');
+    setIsLoggedIn(false);
+    setAlertMessage('Logged out');
+    setAlertType('info');
+    setAlertVisible(true);
+  };
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
+    <PaperProvider theme={theme}>
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator animating={true} size="large" color={theme.colors.primary} />
+          <Text variant="titleMedium" style={{ marginTop: 10 }}>
+            Loading...
+          </Text>
+        </View>
+      ) : isLoggedIn ? (
+        <DrawerNavigator onLogout={handleLogout} />
+      ) : (
+        <LoginPage onLogin={handleLogin} />
+      )}
+
+      <AlertMessage
+        key={alertMessage + alertVisible}
+        visible={alertVisible}
+        message={alertMessage}
+        type={alertType}
+        onDismiss={() => setAlertVisible(false)}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
+    </PaperProvider>
   );
 }
