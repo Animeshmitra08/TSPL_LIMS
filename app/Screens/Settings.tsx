@@ -1,15 +1,9 @@
-import React from 'react'
-import { View } from 'react-native'
-import { Text } from 'react-native-paper'
+import { Text, View } from "react-native";
 
-const SettingsScreen = () => {
+export default function SettingsScreen() {
   return (
-    <>
     <View>
-        <Text variant='displayLarge'>This is settings Screen</Text>
+      <Text>This is a Settings Page</Text>
     </View>
-    </>
   )
 }
-
-export default SettingsScreen
