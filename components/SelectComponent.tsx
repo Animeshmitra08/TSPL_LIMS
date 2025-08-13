@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useRef } from "react";
 import { Modal, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import { Button } from "react-native-paper";
@@ -14,13 +13,16 @@ export function SelectComponentBYFORM({
     screenWidth,
     // setSampleingMode,
 }: any) {
-
     return (
 
         <TouchableWithoutFeedback onPress={() => setIsVisible(false)} >
             <View style={styles.container}>
-                {/* <Text style={styles.label}>{field.label}</Text> */}
-                <Text style={styles.selectLabel}
+               {formData[field.name] !== field.label && <Text style={{
+                    // marginHorizontal : 2,
+                    // fontSize : 12,
+                }}>{field.label}</Text>}
+                <Text
+                 style={styles.selectLabel}
                     onPress={() => setIsVisible(true)}
                     
                 >
@@ -54,19 +56,11 @@ export function SelectComponentBYFORM({
                                 </Button>
                                 <SelectList
                                     setSelected={(val: string) => {
-                                        // setSampleingMode(()=>{
-                                        //     if (val === "manual") {
-                                        //         return false;
-                                        //     }
-                                        //     else{
-                                        //         return true;
-                                        //     }
-                                        // })
                                         handleChange(field.name, val);
                                     }}
-                                    
+                                    search={true}
                                     onSelect={() => {
-                                        setIsVisible(false);
+                                        // setIsVisible(false);
                                     }}
                                     data={field.options}
                                     save="value"
@@ -115,16 +109,7 @@ export function SelectComponentBYState({
     value,
     setValue,
 }: any) {
-    const selectOutside = useRef(null);
-    const handleCLickOutlide = (e) => {
-        if (selectOutside.current && !selectOutside.current.contains(e.target)) {
-            setIsVisible(false);
-        }
-    }
-    useEffect(() => {
-        document.addEventListener("mousedown", handleCLickOutlide);
-        document.addEventListener("touchstart", handleCLickOutlide);
-    }, [])
+    
     return (<View>
         {/* <Text style={styles.label}>{field.label}</Text> */}
         <Text style={styles.selectLabel}
@@ -136,7 +121,6 @@ export function SelectComponentBYState({
             visible={isVisible}
             animationType="slide"
             transparent
-            ref={selectOutside}
         >
             <TouchableWithoutFeedback>
                 <View style={styles.modalOverlay}>
@@ -210,10 +194,11 @@ const styles = StyleSheet.create({
     },
     selectLabel: {
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: 'black',
         padding: 13,
-        borderRadius: 6,
+        borderRadius: 3,
         fontSize: 16,
+        opacity : .7
     },
     modalOverlay: {
         flex: 1,

@@ -1,3 +1,4 @@
+import AlertMessage from '@/components/Cards/AlertMessage';
 import DateTimeComponent from '@/components/DateTimeSelect';
 import { SelectComponentBYFORM } from '@/components/SelectComponent';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableWithoutFeedback,
+  useWindowDimensions,
   View
 } from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
@@ -21,7 +23,7 @@ import {
   Text,
   TextInput,
 } from 'react-native-paper';
-import NoOfTwoBoxComponent from './NoOfTwoBoxComponent';
+import NoOfTwoBoxComponent, { BoxData } from './NoOfTwoBoxComponent';
 
 dayjs.extend(customParseFormat);
 
@@ -29,13 +31,14 @@ const HomeScreen = () => {
   const [supervisor, setSupervisor] = useState('');
   const [sampler, setSampler] = useState('');
   const [customDateTime, setCustomDateTime] = useState<any>();
+  const [boxes, setBoxes] = useState<BoxData[]>([]);
 
   const [formData, setFormData] = useState({
     truckNumber: 'Select Truck Number',
     samplingAgency: '',
     supervisorName: '',
     bagsCollected: '', // change this to array
-    sealNumbers: [] as any, 
+    sealNumbers: [] as any,
     // [] as { bagno: number; seal: string }[],
     samplingMode: 'Select Sampling Mode',
     samplingDateTime: new Date(),
@@ -90,20 +93,64 @@ const HomeScreen = () => {
       }));
     }
   };
-  
-  const [boxes, setBoxes] = useState([]);
+
+  // messages
+  const [alertVisible, setAlertVisible] = useState<boolean>(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'info' | 'error' | 'success'>('info');
+  // height and width calculate
+  const height = useWindowDimensions().height;
+  const width = useWindowDimensions().width;
+  const isLandScape = width > height;
+  // Custom handle Close alert visible function
+  function handleVisible() {
+    setAlertVisible(false);
+  }
+
   const handleSubmit = () => {
     if (Platform.OS === "android") {
       if (!customDateTime) {
         return;
       }
-      setFormData({
-        ...formData,
-        sealNumbers : boxes
-      })
-      setFormData({ ...formData, samplingDateTime: customDateTime });
-      console.log(JSON.stringify(formData), "formdata");
+      const cleanedBoxes = boxes.map(({ bagNo, seal }) => ({ bagNo, seal }));
+      // setFormData({
+      //   ...formData,
+      //   sealNumbers : cleanedBoxes
+      // })
+      setFormData({ ...formData, samplingDateTime: customDateTime, sealNumbers: cleanedBoxes });
+      // validate
+      if (!formValidaty(formData)) {
+        setAlertMessage("Please enter all fields");
+        setAlertType('error')
+        setAlertVisible(true)
+        setTimeout(() => {
+          setAlertVisible(false)
+        })
+        return;
+      } else {
+        setAlertMessage('Rake Sampling Report submitted');
+        setAlertType('success')
+        setAlertVisible(true)
+        setTimeout(() => {
+          setAlertVisible(false)
+        })
+      }
 
+      console.log(JSON.stringify(formData), "formdata");
+      setFormData({
+        truckNumber: 'Select Truck Number',
+        samplingAgency: '',
+        supervisorName: '',
+        bagsCollected: '', // change this to array
+        sealNumbers: [] as any,
+        // [] as { bagno: number; seal: string }[],
+        samplingMode: 'Select Sampling Mode',
+        samplingDateTime: new Date(),
+      });
+      setBoxes([])
+      setSampler("")
+      setSupervisor("")
+      setCustomDateTime(undefined)
     }
   };
   const [isTruckVisible, setIsTruckVisible] = useState(false);
@@ -114,19 +161,21 @@ const HomeScreen = () => {
 
   const bagsCollected = (boxs: any) => {
     setBoxes(boxs);
-  console.log(boxes);
-  
+    console.log(boxes);
+
   }
 
   const handleChange = (field: any, val: any) => {
     setFormData({ ...formData, [field]: val })
   }
 
+
   return (
     <KeyboardAvoidingView behavior='padding' keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100} >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.container}>
           <Text variant="titleLarge" style={styles.title}>Sampling Form</Text>
+          {/* disabled when api integert */}
           <SelectComponentBYFORM
             field={{
               label: "Select Truck Number",
@@ -171,7 +220,7 @@ const HomeScreen = () => {
             mode="outlined"
           />
 
-          <TextInput
+          {/* <TextInput
             label="Number of Bags Collected"
             value={formData.bagsCollected}
             onChangeText={handleBagsChange}
@@ -179,8 +228,27 @@ const HomeScreen = () => {
             style={styles.input}
             mode="outlined"
             placeholderTextColor={"#000"}
+          /> */}
+          <TextInput
+            label="Number of Bags Collected"
+            value={formData.bagsCollected}
+            onChangeText={(text: string) => {
+              setFormData({ ...formData, bagsCollected: text })
+            }}
+            keyboardType='numeric'
+            style={styles.input}
+            mode='outlined'
+            placeholderTextColor={"#000"}
           />
-          <NoOfTwoBoxComponent number={Number(formData?.bagsCollected) || 0} bagsCollected={bagsCollected} />
+          {
+                        Number(formData?.bagsCollected) > 100 && <Text  style={{
+              color : "red",
+              marginBottom : 10,
+              marginLeft : 2 
+            }}>bags less than 100</Text>}
+          {
+            Number(formData?.bagsCollected) < 100 &&  <NoOfTwoBoxComponent boxes={boxes} setBoxes={setBoxes} number={Number(formData?.bagsCollected) || 0} />
+          }
           {/* {formData.sealNumbers.map((sealObj, index) => {
             console.log(sealObj);
             
@@ -218,7 +286,17 @@ const HomeScreen = () => {
             Submit
           </Button>
         </ScrollView>
-      </TouchableWithoutFeedback></KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+      <AlertMessage
+        key={alertMessage + alertVisible}
+        visible={alertVisible}
+        message={alertMessage}
+        type={alertType}
+        onDismiss={() => setAlertVisible(false)}
+        isLandScape={isLandScape}
+        handleVisible={handleVisible}
+      />
+    </KeyboardAvoidingView>
 
   );
 };
@@ -234,7 +312,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 8,
-    backgroundColor : "transparent",
+    backgroundColor: "transparent",
   },
   dropdown: {
     marginBottom: 8,
@@ -358,3 +436,26 @@ export const SelectComponent = ({
   </View>
   );
 };
+
+export function formValidaty(formData: any): boolean {
+  const requiredFields: (keyof typeof formData)[] = [
+    "truckNumber", "samplingAgency", "supervisorName", "bagsCollected", "sealNumbers", "samplingMode", "samplingDateTime"
+  ]
+  if (Number(formData.bagsCollected) === 0 || Number(formData.bagsCollected) > 100) {
+    return false;
+  }
+  for (const field of requiredFields) {
+    const value = formData[field];
+
+    if (typeof value === "string" && value.trim() === "") {
+      console.log("Missing string field:", field, value);
+      return false;
+    }
+
+    if (value === undefined || value === null) {
+      console.log("Missing required field:", field, value);
+      return false;
+    }
+  }
+  return true;
+}

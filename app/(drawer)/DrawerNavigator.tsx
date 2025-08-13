@@ -1,11 +1,9 @@
-// navigation/DrawerNavigator.tsx
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import React from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Avatar, Button, Divider, Text } from 'react-native-paper';
 import HomeScreen from '../Screens/Home';
-import RankSamplingReportForm from '../Screens/RankSamplingReportForm';
-import SettingsScreen from '../Screens/Settings';
+import RakeSampleForm from '../Screens/RakeSampleform';
 
 type DrawerNavigatorProps = {
   onLogout: () => Promise<void>;
@@ -22,8 +20,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
       drawerContent={(props) => <CustomDrawer {...props} onLogout={onLogout} />}
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name="Settings" component={SettingsScreen} />
-      <Drawer.Screen name='Rank Sample' component={RankSamplingReportForm} />
+      <Drawer.Screen name='Rank Sample' component={RakeSampleForm} />
       
     </Drawer.Navigator>
   );

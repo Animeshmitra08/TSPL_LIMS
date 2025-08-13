@@ -1,4 +1,3 @@
-// app/(tabs)/_layout.tsx
 import AlertMessage from '@/components/Cards/AlertMessage';
 import { useAsyncStorage } from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
