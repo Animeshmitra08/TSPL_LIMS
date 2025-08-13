@@ -183,6 +183,8 @@ export default function RankSamplingReportForm() {
         }));
     }, [formData["rakeUnloadingCommenceDate&Time"], formData["rakeUnloadingCompletedDate&Time"]]);
 
+
+
     return (
         <KeyboardAvoidingView style={styles.container} behavior='padding' keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}>
             <ScrollView contentContainerStyle={styles.form}>
@@ -258,7 +260,12 @@ export default function RankSamplingReportForm() {
                 <Button
                     style={styles.button}
                     mode="outlined"
-                    onPress={() => console.log('Form Data:', formData)}
+                    onPress={() => {
+                        console.log('Form Data:', JSON.stringify((formData)));
+                        setFormData({})
+
+                    }}
+
                 >
                     Submit Report
                 </Button>
@@ -270,7 +277,6 @@ export default function RankSamplingReportForm() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fff",
     },
     form: {
         padding: 20,
@@ -287,6 +293,7 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 6,
         fontSize: 16,
+        backgroundColor: "transparent"
     },
     selectLabel: {
         height: 50,

@@ -131,7 +131,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   onPress={() => setShowPassword(!showPassword)}  // toggle logic
                 />
               }
-              style={{ margin: 10 }}
             />
           </View>
           <View>
@@ -231,11 +230,16 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 mode="outlined"
                 label="Password"
                 placeholder="Enter your password"
-                secureTextEntry // Obscures the entered text, useful for passwords
+                secureTextEntry={!showPassword} // Obscures the entered text, useful for passwords
                 value={password}
                 onChangeText={(newPassword) => setPassword(newPassword)}
                 left={<TextInput.Icon icon="lock" />} // Icon on the left side
-                right={<TextInput.Icon icon="eye" onPress={() => { /* Toggle password visibility */ }} />} // Icon on the right side
+                right={
+                  <TextInput.Icon
+                    icon={showPassword ? "eye-off" : "eye"}
+                    onPress={() => setShowPassword(!showPassword)}  // toggle logic
+                  />
+                }
                 style={styles.input}
                 outlineColor={theme1.colors.primary}
                 activeOutlineColor={theme1.colors.accent}

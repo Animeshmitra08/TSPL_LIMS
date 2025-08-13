@@ -5,7 +5,7 @@ import { Modal, Platform, StyleSheet, Text, View } from "react-native";
 import { Button, TextInput } from 'react-native-paper';
 
 const DateTimeComponent = (
-    { label, date, setDate, mode, style }: any
+    { label, date, setDate, mode, style, disabled }: any
 ) => {
     const [open, setOpen] = useState(false);
     const handleOpen = () => {
@@ -31,10 +31,13 @@ const DateTimeComponent = (
     }, [date1, time1]);
 
     return (<View>
+        {
+            date !== undefined && <Text>{label}</Text>
+        }
         <TextInput
             style={style}
             left={<TextInput.Icon icon="calendar" />} // Icon on the left side
-
+disabled={disabled}
 
             mode={mode ?? "outlined"} value={date?.toLocaleString()} onPress={handleOpen} placeholder={label ?? "Select Date & time"} />
         {open && (Platform.OS === "ios" ? <DateTimePicker
@@ -277,6 +280,7 @@ export function DateTimeComponentByForm({ label, formData, setFormData, name, mo
                                         setDate1Open(false);
                                     }
                                 }}
+                                
                             />
                         }
                         {
@@ -299,7 +303,6 @@ export function DateTimeComponentByForm({ label, formData, setFormData, name, mo
         )}
     </View>
     )
-
 }
 const styles = StyleSheet.create({
     container: {
@@ -313,9 +316,10 @@ const styles = StyleSheet.create({
     },
     input: {
         borderWidth: 1,
-        borderColor: '#ccc',
+        // borderColor: '#ccc',
         padding: 8,
         borderRadius: 6,
         fontSize: 16,
+                backgroundColor : "transparent",
     },
 })
