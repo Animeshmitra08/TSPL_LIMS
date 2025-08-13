@@ -1,13 +1,14 @@
 // navigation/DrawerNavigator.tsx
-import React from 'react';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import { View, StyleSheet } from 'react-native';
-import { Avatar, Text, Divider, Button } from 'react-native-paper';
-import SettingsScreen from '../Screens/Settings';
+import React from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+import { Avatar, Button, Divider, Text } from 'react-native-paper';
 import HomeScreen from '../Screens/Home';
+import RankSamplingReportForm from '../Screens/RankSamplingReportForm';
+import SettingsScreen from '../Screens/Settings';
 
 type DrawerNavigatorProps = {
-  onLogout: () => void;
+  onLogout: () => Promise<void>;
 };
 
 const Drawer = createDrawerNavigator();
@@ -22,8 +23,25 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name="Settings" component={SettingsScreen} />
+      <Drawer.Screen name='Rank Sample' component={RankSamplingReportForm} />
+      
     </Drawer.Navigator>
   );
+}
+
+async function handleLogout(onLogout: () => Promise<void>) {
+  Alert.alert("Are you sure You want to Logout", "This action will throw you for login", [
+    {
+      text: "cancel",
+      onPress: () => { }
+    },
+    {
+      text: "Yes",
+      onPress: async () => {
+        await onLogout();
+      }
+    }
+  ]);
 }
 
 function CustomDrawer(props: any) {
@@ -36,12 +54,14 @@ function CustomDrawer(props: any) {
         <Text style={styles.username}>Hello, User</Text>
       </View>
       <Divider style={{ marginVertical: 8 }} />
-      <DrawerItemList {...props} />
-      <Divider />
+      <DrawerItemList  {...props} />
+      <Divider style={{ marginVertical: 8 }} />
       <Button
         icon="logout"
         mode="outlined"
-        onPress={onLogout}
+        onPress={async () => {
+          await handleLogout(onLogout)
+        }}
         style={styles.logout}
       >
         Logout

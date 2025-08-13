@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Card, Text, IconButton } from 'react-native-paper';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Card, IconButton, Text } from 'react-native-paper';
 
 type AlertType = 'success' | 'error' | 'info';
 
@@ -9,7 +9,10 @@ type AlertMessageProps = {
   message: string;
   type?: AlertType;
   onDismiss: () => void;
+  isLandScape: boolean;
+  handleVisible: () => void;
 };
+
 
 const backgroundColors: Record<AlertType, string> = {
   success: '#d4edda',
@@ -23,16 +26,28 @@ const textColors: Record<AlertType, string> = {
   info: '#0c5460',
 };
 
+
 const AlertMessage: React.FC<AlertMessageProps> = ({
   visible,
   message,
   type = 'info',
   onDismiss,
+  isLandScape,
+  handleVisible
 }) => {
+  const height = useWindowDimensions().height;
+  const width = useWindowDimensions().width;
+  const pageLandscape = width > height;
+  if (visible === true) {
+    setTimeout(() => {
+      handleVisible();
+    }, 2000);
+  }
   if (!visible) return null;
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container
+      , !isLandScape && !pageLandscape ? styles.isLandscapeAlert : null
+    ]}>
       <Card style={[styles.card, { backgroundColor: backgroundColors[type] }]}>
         <Card.Content style={styles.content}>
           <Text style={[styles.text, { color: textColors[type] }]}>
@@ -48,10 +63,11 @@ const AlertMessage: React.FC<AlertMessageProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 20,
-    left: 16,
-    right: 16,
+    top: 40,
     zIndex: 1000,
+    height: "auto",
+    right: "26%",
+    left: "26%",
   },
   card: {
     borderRadius: 8,
@@ -61,11 +77,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    height: 50,
   },
   text: {
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
+  },
+  isLandscapeAlert: {
+    right: 16,
+    left: 16,
   },
 });
 

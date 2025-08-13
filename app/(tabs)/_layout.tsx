@@ -1,12 +1,11 @@
 // app/(tabs)/_layout.tsx
+import AlertMessage from '@/components/Cards/AlertMessage';
+import { useAsyncStorage } from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import { useColorScheme, View } from 'react-native';
-import { Slot } from 'expo-router';
-import { PaperProvider, ActivityIndicator, Text, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-import { useAsyncStorage } from '@react-native-async-storage/async-storage';
+import { ActivityIndicator, MD3DarkTheme, MD3LightTheme, PaperProvider, Text } from 'react-native-paper';
 import LoginPage from '.';
 import DrawerNavigator from '../(drawer)/DrawerNavigator';
-import AlertMessage from '@/components/Cards/AlertMessage';
 
 export default function TabsLayout() {
   const [isLoading, setIsLoading] = useState(true);
@@ -59,6 +58,10 @@ export default function TabsLayout() {
     setAlertVisible(true);
   };
 
+  const handleVisible = () => {
+    setAlertVisible(false);
+  }
+
   return (
     <PaperProvider theme={theme}>
       {isLoading ? (
@@ -80,6 +83,8 @@ export default function TabsLayout() {
         message={alertMessage}
         type={alertType}
         onDismiss={() => setAlertVisible(false)}
+        isLandScape={false}
+        handleVisible={handleVisible}
       />
     </PaperProvider>
   );
