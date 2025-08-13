@@ -2,7 +2,7 @@ import DateTimeComponent from '@/components/DateTimeSelect';
 import { SelectComponentBYFORM } from '@/components/SelectComponent';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat.js';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import React, { useState } from 'react';
 import {
   Dimensions,
