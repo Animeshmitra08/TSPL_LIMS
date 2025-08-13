@@ -1,15 +1,13 @@
 import AlertMessage from '@/components/Cards/AlertMessage';
 import DateTimeComponent from '@/components/DateTimeSelect';
 import { SelectComponentBYFORM } from '@/components/SelectComponent';
-import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,7 +15,6 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-import { SelectList } from 'react-native-dropdown-select-list';
 import {
   Button,
   Text,
@@ -45,6 +42,9 @@ const HomeScreen = () => {
   });
 
   const truckOptions = [
+    { key: '1', value: 'TRK123' },
+    { key: '2', value: 'TRK456' },
+    { key: '3', value: 'TRK789' },
     { key: '1', value: 'TRK123' },
     { key: '2', value: 'TRK456' },
     { key: '3', value: 'TRK789' },
@@ -102,6 +102,19 @@ const HomeScreen = () => {
   const height = useWindowDimensions().height;
   const width = useWindowDimensions().width;
   const isLandScape = width > height;
+
+  const baseurl = process.env.EXPO_PUBLIC_BASE_URL;
+
+  useEffect(()=>{
+    const fun = async()=>{
+      const res = await fetch(`${baseurl}/Sampling/POWERTYPE/COAL`)
+      const data = await res.json();
+      console.log(data);      
+    } 
+
+    fun();
+  },[])
+
   // Custom handle Close alert visible function
   function handleVisible() {
     setAlertVisible(false);
@@ -159,11 +172,6 @@ const HomeScreen = () => {
   const screenHeight = Dimensions.get("window").height;
   const screenWidht = Dimensions.get("window").width;
 
-  const bagsCollected = (boxs: any) => {
-    setBoxes(boxs);
-    console.log(boxes);
-
-  }
 
   const handleChange = (field: any, val: any) => {
     setFormData({ ...formData, [field]: val })
@@ -189,7 +197,9 @@ const HomeScreen = () => {
             screenHeight={screenHeight}
             screenWidth={screenWidht}
           />
+          
 
+          
           <TextInput
             label="Sampling Agency"
             value={formData.samplingAgency}
@@ -220,15 +230,6 @@ const HomeScreen = () => {
             mode="outlined"
           />
 
-          {/* <TextInput
-            label="Number of Bags Collected"
-            value={formData.bagsCollected}
-            onChangeText={handleBagsChange}
-            keyboardType="numeric"
-            style={styles.input}
-            mode="outlined"
-            placeholderTextColor={"#000"}
-          /> */}
           <TextInput
             label="Number of Bags Collected"
             value={formData.bagsCollected}
@@ -241,27 +242,15 @@ const HomeScreen = () => {
             placeholderTextColor={"#000"}
           />
           {
-                        Number(formData?.bagsCollected) > 100 && <Text  style={{
-              color : "red",
-              marginBottom : 10,
-              marginLeft : 2 
+            Number(formData?.bagsCollected) > 100 && <Text style={{
+              color: "red",
+              marginBottom: 10,
+              marginLeft: 2
             }}>bags less than 100</Text>}
           {
-            Number(formData?.bagsCollected) < 100 &&  <NoOfTwoBoxComponent boxes={boxes} setBoxes={setBoxes} number={Number(formData?.bagsCollected) || 0} />
+            Number(formData?.bagsCollected) < 100 && <NoOfTwoBoxComponent boxes={boxes} setBoxes={setBoxes} number={Number(formData?.bagsCollected) || 0} />
           }
-          {/* {formData.sealNumbers.map((sealObj, index) => {
-            console.log(sealObj);
-            
-            return(
-            <TextInput
-              key={index}
-              label={`Seal #${sealObj.bagno}`}
-              value={sealObj.seal}
-              onChangeText={(text) => updateSealAtIndex(text, index)}
-              style={styles.input}
-              mode="outlined"
-            />
-          )})} */}
+
           <SelectComponentBYFORM
             field={{
               label: "Select Sampling Mode",
@@ -275,6 +264,11 @@ const HomeScreen = () => {
             screenHeight={screenHeight}
             screenWidth={screenWidht}
           />
+          <View style={{
+            marginBottom : 2
+          }}>
+
+          </View>
           <DateTimeComponent
             label={"Sampling Date & Time"}
             mode="outlined"
@@ -351,91 +345,91 @@ const styles = StyleSheet.create({
 export default HomeScreen;
 
 
-export const SelectComponent = ({
-  field,
-  formData,
-  handleChange,
-  isVisible,
-  setIsVisible,
-  screenHeight,
-  screenWidth
-}: any) => {
-  return (<View>
-    <Text style={styles.selectLabel}
-      onPress={() => setIsVisible(true)}
-    >
-      {formData[field.name] || `Select field`}
-    </Text>
+// export const SelectComponent = ({
+//   field,
+//   formData,
+//   handleChange,
+//   isVisible,
+//   setIsVisible,
+//   screenHeight,
+//   screenWidth
+// }: any) => {
+//   return (<View>
+//     <Text style={styles.selectLabel}
+//       onPress={() => setIsVisible(true)}
+//     >
+//       {formData[field.name] || `Select field`}
+//     </Text>
 
-    <Modal
-      visible={isVisible}
-      animationType="slide"
-      transparent
-    >
-      <TouchableWithoutFeedback>
-        <View style={styles.modalOverlay}>
-          <View
-            style={{
-              height: screenHeight * 0.5,
-              backgroundColor: 'white',
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              rowGap: 10,
-            }}
-          >
-            <Button
-              style={{ width: screenWidth * 0.95 }}
-              mode="contained-tonal"
-              onPress={() => setIsVisible(false)}
-            >
-              Close
-            </Button>
-            <SelectList
-              setSelected={(val: string) => {
-                handleChange(field.name, val);
-                setIsVisible(true);
-              }}
-              onSelect={() => {
-                setIsVisible(true);
-              }}
-              data={field.options}
-              save="value"
-              boxStyles={{
-                width: screenWidth * 0.95,
-                borderWidth: 0,
-                borderColor: 'transparent',
-                backgroundColor: '#f1f1f1',
-                borderRadius: 10,
-              }}
-              inputStyles={{
-                padding: 2,
-                fontSize: 16,
-                color: '#333',
-              }}
-              dropdownStyles={{
-                borderWidth: 0,
-                backgroundColor: '#f1f1f1',
-                elevation: 3,
-                width: screenWidth * 0.95
-              }}
-              closeicon={
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color={'#999'}
-                  style={{ marginLeft: 10 }}
-                />
-              }
-            />
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
-  </View>
-  );
-};
+//     <Modal
+//       visible={isVisible}
+//       animationType="none"
+//       transparent
+//     >
+//       <TouchableWithoutFeedback>
+//         <View style={styles.modalOverlay}>
+//           <View
+//             style={{
+//               height: screenHeight * 0.5,
+//               backgroundColor: 'white',
+//               borderTopLeftRadius: 20,
+//               borderTopRightRadius: 20,
+//               paddingHorizontal: 12,
+//               paddingVertical: 10,
+//               rowGap: 10,
+//             }}
+//           >
+//             <Button
+//               style={{ width: screenWidth * 0.95 }}
+//               mode="contained-tonal"
+//               onPress={() => setIsVisible(false)}
+//             >
+//               Close
+//             </Button>
+//             <SelectList
+//               setSelected={(val: string) => {
+//                 handleChange(field.name, val);
+//                 setIsVisible(true);
+//               }}
+//               onSelect={() => {
+//                 setIsVisible(true);
+//               }}
+//               data={field.options}
+//               save="value"
+//               boxStyles={{
+//                 width: screenWidth * 0.95,
+//                 borderWidth: 0,
+//                 borderColor: 'transparent',
+//                 backgroundColor: '#f1f1f1',
+//                 borderRadius: 10,
+//               }}
+//               inputStyles={{
+//                 padding: 2,
+//                 fontSize: 16,
+//                 color: '#333',
+//               }}
+//               dropdownStyles={{
+//                 borderWidth: 0,
+//                 backgroundColor: '#f1f1f1',
+//                 elevation: 3,
+//                 width: screenWidth * 0.95
+//               }}
+//               closeicon={
+//                 <Ionicons
+//                   name="close-circle"
+//                   size={20}
+//                   color={'#999'}
+//                   style={{ marginLeft: 10 }}
+//                 />
+//               }
+//             />
+//           </View>
+//         </View>
+//       </TouchableWithoutFeedback>
+//     </Modal>
+//   </View>
+//   );
+// };
 
 export function formValidaty(formData: any): boolean {
   const requiredFields: (keyof typeof formData)[] = [

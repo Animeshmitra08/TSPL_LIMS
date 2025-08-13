@@ -16,8 +16,12 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
     <Drawer.Navigator
       screenOptions={{
         headerShown: true,
-      }}
-      drawerContent={(props) => <CustomDrawer {...props} onLogout={onLogout} />}
+        drawerItemStyle : {
+          margin:4
+        }
+      }}      
+      drawerContent={(props) => <CustomDrawer {...props} onLogout={onLogout} 
+      />}
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name='Rank Sample' component={RakeSampleForm} />

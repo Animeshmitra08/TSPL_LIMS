@@ -9,7 +9,6 @@ export interface BoxData {
 
 export default function NoOfTwoBoxComponent({ number ,
  boxes, setBoxes }:any
-  //  { number: number, bagsCollected?:any, boxes : [] }
   ) {
  
 
@@ -60,7 +59,9 @@ export default function NoOfTwoBoxComponent({ number ,
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container,{
+      paddingBottom : 0
+    }]}>
       {boxes.map((box:any, index:any) => (
         <View key={index} style={styles.box}>
           <TextInput
@@ -80,7 +81,6 @@ export default function NoOfTwoBoxComponent({ number ,
         </View>
       ))}
 
-      {/* <Button title="Submit" onPress={handleSubmit} /> */}
     </ScrollView>
   );
 }
@@ -88,12 +88,15 @@ export default function NoOfTwoBoxComponent({ number ,
 const styles = StyleSheet.create({
   container: {
     // padding: 20,
+    // marginTop : 2,
+    // marginBottom : -12
+    paddingBottom : 0
   },
   box: {
     flexDirection: 'row',
-    // marginBottom: 10,
+    marginBottom: 10,
     gap: 10,
-    margin : 3,
+    // margin : 3,
   },
   input: {
     flex: 1,

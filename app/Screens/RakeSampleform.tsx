@@ -1,58 +1,59 @@
 import AlertMessage from "@/components/Cards/AlertMessage";
 import DateTimeComponent from "@/components/DateTimeSelect";
 import { SelectComponentBYFORM } from "@/components/SelectComponent";
-import { useEffect, useState } from "react";
-import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, useWindowDimensions } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, useWindowDimensions, View } from "react-native";
 import { Button, Text, TextInput } from "react-native-paper";
 import NoOfTwoBoxComponent, { BoxData } from "./NoOfTwoBoxComponent";
+const initialFormData = {
+  clientName: "Raj Soni",
+  rankNo: "",
+  commodity: "",
+  rakePlacementDateAndTime: undefined,
+  rakeUnloadingCommenceDateAndTime: undefined,
+  rakeUnloadingCompletedDateAndTime: undefined,
+  dateOfSampleCollection: "",
+  SampleCollectionStartDateAndTime: undefined,
+  SampleCollectionEndDateAndTime: undefined,
+  noOfBagsCollected: 0,
+  samplingAgency: "",
+  supervisor: "",
+  samplers: "",
+  allSampleBagsSealChecked: "",
+  samplingMode: "",
+  autoSampler: "",
+  noOfWagons: 0,
+  weatherCondition: "",
+  remarks: 0,
+}
+type initialFormDataType = {
+  clientName: string,
+  rankNo: string,
+  commodity: string,
+  rakePlacementDateAndTime: Date | undefined,
+  rakeUnloadingCommenceDateAndTime: Date | undefined,
+  rakeUnloadingCompletedDateAndTime: Date | undefined,
+  dateOfSampleCollection: string,
+  SampleCollectionStartDateAndTime: Date | undefined,
+  SampleCollectionEndDateAndTime: Date | undefined,
+  noOfBagsCollected: number,
+  samplingAgency: string,
+  supervisor: string,
+  samplers: string,
+  allSampleBagsSealChecked: string,
+  samplingMode: string,
+  autoSampler: string,
+  noOfWagons: number,
+  weatherCondition: string,
+  remarks: number,
+}
 
-export default function RakeSampleForm() {
-  const [formData, setFormData] = useState<{
-    clientName: string,
-    rankNo: string,
-    commodity: string,
-    rakePlacementDateAndTime: Date | undefined,
-    rakeUnloadingCommenceDateAndTime: Date | undefined,
-    rakeUnloadingCompletedDateAndTime: Date | undefined,
-    dateOfSampleCollection: string,
-    SampleCollectionStartDateAndTime: Date | undefined,
-    SampleCollectionEndDateAndTime: Date | undefined,
-    noOfBagsCollected: number,
-    samplingAgency: string,
-    supervisor: string,
-    samplers: string,
-    allSampleBagsSealChecked: string,
-    samplingMode: string,
-    autoSampler: string,
-    noOfWagons: number,
-    weatherCondition: string,
-    remarks: number,
-  }>({
-    clientName: "Raj Soni", // api data
-    rankNo: "",
-    commodity: "",
-    rakePlacementDateAndTime: undefined,
-    rakeUnloadingCommenceDateAndTime: undefined,
-    rakeUnloadingCompletedDateAndTime: undefined,
-    dateOfSampleCollection: "",   // rakePlacementDateAndTime of date
-    SampleCollectionStartDateAndTime: undefined,   //rakeUnloadingCompletedDateAndTime 
-    SampleCollectionEndDateAndTime: undefined,//rakeUnloadingCompletedDateAndTime
-    noOfBagsCollected: 0,
-    samplingAgency: "",
-    supervisor: "",
-    samplers: "",
-    allSampleBagsSealChecked: "",
-    samplingMode: "",
-    autoSampler: "",
-    noOfWagons: 0,
-    weatherCondition: "",
-    remarks: 0,
-  });
-  // form data change function
+
+const RakeSampleForm = React.memo(() => {
+  const [formData, setFormData] = useState<initialFormDataType>(initialFormData);
   const handleChange = (field: any, val: any) => {
     setFormData({ ...formData, [field]: val })
   }
-  // Dimensions match
   const screenHeight = Dimensions.get("window").height;
   const screenWidht = Dimensions.get("window").width;
   // select bar dialogs
@@ -79,10 +80,8 @@ export default function RakeSampleForm() {
       SampleCollectionStartDateAndTime: customDateTimeRakeUnloadingCommenceTimeAndDate,
     }));
   }, [customDateTimeRakeUnloadingCommenceTimeAndDate]);
-  console.log(formData.dateOfSampleCollection, "date");
 
   useEffect(() => {
-
     setFormData((prev) => ({
       ...prev,
       SampleCollectionEndDateAndTime: customDateTimeRakeUnloadingCompletedTimeAndDate,
@@ -132,6 +131,9 @@ export default function RakeSampleForm() {
             screenHeight={screenHeight}
             screenWidth={screenWidht}
           />
+          <View style={{
+            marginBottom : 1,
+          }}/>
           {/* Commodity is optional */}
           <SelectComponentBYFORM
             field={{
@@ -150,84 +152,11 @@ export default function RakeSampleForm() {
             screenHeight={screenHeight}
             screenWidth={screenWidht}
           />
-          {/* rake placement date & time */}
-          <DateTimeComponent
-            label={"Rake placement date & time"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakePlacementTimeAndDate}
-            setDate={(date: Date) => {
-              setCustomDateTimeRakePlacementTimeAndDate(date);
-              setFormData((prev) => ({
-                ...prev,
-                rakePlacementDateAndTime: date
-              }));
-            }}
-          />
-          {/* rake unloading commence date & time  */}
-          <DateTimeComponent
-            label={"Rake unloading commence"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakeUnloadingCommenceTimeAndDate}
-            setDate={(date: Date) => {
-              setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate(date)
-              setFormData((prev) => ({
-                ...prev,
-                rakeUnloadingCommenceDateAndTime: date
-              }))
-            }}
-          />
-          {/* rake unloading completed date & time  */}
-          <DateTimeComponent
-            label={"Rake unloading completed"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakeUnloadingCompletedTimeAndDate}
 
-            setDate={(date: Date) => {
-              setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate(date)
-              setFormData((prev) => ({
-                ...prev,
-                rakeUnloadingCompletedDateAndTime: date
-              }))
-            }}
-          />
-          {/* date of Sample of Collection */}
-          {/* <DateTimeComponent
-            label={"Date of Sample Collection"}
-            mode="outlined"
-            style={styles.input}
-            date={formData?.dateOfSampleCollection}
-            setDate={setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate}
-            disabled={true}
-          /> */}
-          <TextInput
-            label="Date of Sample Collection"
-            value={`${formData?.dateOfSampleCollection === "Invalid Date" ? "date of sample collection" : formData?.dateOfSampleCollection}`}
-            onChangeText={(text) => setFormData({ ...formData, dateOfSampleCollection: (text) })}
-            style={styles.input}
-            mode="outlined"
-            disabled={true}
-          />
-          {/*  date & time of sample collection start */}
-          <DateTimeComponent
-            label={"Sample collection start"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakeUnloadingCommenceTimeAndDate}
-            setDate={setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate}
-            disabled={true}
-          />
-          {/* rake date & time of sample collection completed  */}
-          <DateTimeComponent
-            label={"Sample collection completed"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakeUnloadingCompletedTimeAndDate}
-            setDate={setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate}
-            disabled={true}
-          />
+                    <View style={{
+            marginBottom : 1,
+          }}/>
+
           {/* no of bags collected */}
           <TextInput
             label="No of bags Collected"
@@ -235,24 +164,17 @@ export default function RakeSampleForm() {
             onChangeText={(text) => {
               setFormData({ ...formData, noOfBagsCollected: Number(text) })
             }}
-            style={styles.input}
+            style={styles.inputNoFoCollectedBags}
             mode="outlined"
             keyboardType="numeric"
           />
           {
             Number(formData?.noOfBagsCollected) > 100 && <Text style={{
-              color : "red",
-              marginBottom : 10,
-              marginLeft : 2
+              color: "red",
+              marginBottom: 10,
+              marginLeft: 2
             }}>bags less than 100</Text>
           }
-          {/* {
-            formData?.noOfBagsCollected > 0 && <NoOfTwoBoxComponent
-              number={formData?.noOfBagsCollected}
-              boxes={boxes}
-              setBoxes={setBoxes}
-            />
-          } */}
           {
             Number(formData?.noOfBagsCollected) < 100 && <NoOfTwoBoxComponent
               number={formData?.noOfBagsCollected}
@@ -374,8 +296,77 @@ export default function RakeSampleForm() {
             mode="outlined"
             keyboardType="numeric"
           />
+            {/* rake placement date & time */}
+          <DateTimeComponent
+            label={"Rake placement date & time"}
+            mode="outlined"
+            style={styles.input}
+            date={customDateTimeRakePlacementTimeAndDate}
+            setDate={(date: Date) => {
+              setCustomDateTimeRakePlacementTimeAndDate(date);
+              setFormData((prev) => ({
+                ...prev,
+                rakePlacementDateAndTime: date
+              }));
+            }}
+          />
+          {/* rake unloading commence date & time  */}
+          <DateTimeComponent
+            label={"Rake unloading commence"}
+            mode="outlined"
+            style={styles.input}
+            date={customDateTimeRakeUnloadingCommenceTimeAndDate}
+            setDate={(date: Date) => {
+              setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate(date)
+              setFormData((prev) => ({
+                ...prev,
+                rakeUnloadingCommenceDateAndTime: date
+              }))
+            }}
+          />
+          {/* rake unloading completed date & time  */}
+          <DateTimeComponent
+            label={"Rake unloading completed"}
+            mode="outlined"
+            style={styles.input}
+            date={customDateTimeRakeUnloadingCompletedTimeAndDate}
+
+            setDate={(date: Date) => {
+              setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate(date)
+              setFormData((prev) => ({
+                ...prev,
+                rakeUnloadingCompletedDateAndTime: date
+              }))
+            }}
+          />
+          {/* date of Sample of Collection */}
+          <TextInput
+            label="Date of Sample Collection"
+            value={`${formData?.dateOfSampleCollection === "Invalid Date" ? "date of sample collection" : formData?.dateOfSampleCollection}`}
+            onChangeText={(text) => setFormData({ ...formData, dateOfSampleCollection: (text) })}
+            style={styles.input}
+            mode="outlined"
+            disabled={true}
+          />
+          {/*  date & time of sample collection start */}
+          <DateTimeComponent
+            label={"Sample collection start"}
+            mode="outlined"
+            style={styles.input}
+            date={customDateTimeRakeUnloadingCommenceTimeAndDate}
+            setDate={setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate}
+            disabled={true}
+          />
+          {/* rake date & time of sample collection completed  */}
+          <DateTimeComponent
+            label={"Sample collection completed"}
+            mode="outlined"
+            style={styles.input}
+            date={customDateTimeRakeUnloadingCompletedTimeAndDate}
+            setDate={setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate}
+            disabled={true}
+          />
           <Button mode="contained" onPress={() => {
-            console.log(JSON.stringify(formData));
             if (!formValidaty(formData)) {
               setAlertMessage("Please enter all fields");
               setAlertType('error')
@@ -392,31 +383,10 @@ export default function RakeSampleForm() {
                 setAlertVisible(false)
               })
             }
-            setFormData({
-              clientName: "Raj Soni", // api data
-              rankNo: "",
-              commodity: "",
-              rakePlacementDateAndTime: undefined,
-              rakeUnloadingCommenceDateAndTime: undefined,
-              rakeUnloadingCompletedDateAndTime: undefined,
-              dateOfSampleCollection: "",   // rakePlacementDateAndTime of date
-              SampleCollectionStartDateAndTime: undefined,   //rakeUnloadingCompletedDateAndTime 
-              SampleCollectionEndDateAndTime: undefined,//rakeUnloadingCompletedDateAndTime
-              noOfBagsCollected: 0,
-              samplingAgency: "",
-              supervisor: "",
-              samplers: "",
-              allSampleBagsSealChecked: "",
-              samplingMode: "",
-              autoSampler: "",
-              noOfWagons: 0,
-              weatherCondition: "",
-              remarks: 0,
-            });
+            setFormData(initialFormData);
             setCustomDateTimeRakePlacementTimeAndDate(undefined);
             setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate(undefined);
             setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate(undefined)
-
           }} style={styles.button}>
             Submit
           </Button>
@@ -433,7 +403,7 @@ export default function RakeSampleForm() {
       />
     </KeyboardAvoidingView>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: {
@@ -448,6 +418,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: "transparent",
   },
+  inputNoFoCollectedBags : {
+    marginBottom : 2,
+     backgroundColor : "transparent"
+   },
   dropdown: {
     marginBottom: 8,
     borderRadius: 4,
@@ -481,6 +455,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
 });
+
+export default RakeSampleForm
 
 export function formValidaty(formData: any): boolean {
   // Fields that are required
