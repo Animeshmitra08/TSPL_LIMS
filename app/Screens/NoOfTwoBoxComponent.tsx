@@ -1,20 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
-interface BoxData {
+export interface BoxData {
   bagNo: string;
-  value: string;
+  seal: string;
   isEditable: boolean;
 }
 
-export default function NoOfTwoBoxComponent({ number , bagsCollected }: { number: number, bagsCollected?:any }) {
-  const [boxes, setBoxes] = useState<BoxData[]>([]);
+export default function NoOfTwoBoxComponent({ number ,
+ boxes, setBoxes }:any
+  //  { number: number, bagsCollected?:any, boxes : [] }
+  ) {
+ 
 
   useEffect(() => {
     // Initialize box states
     const initialData: BoxData[] = Array.from({ length: number }, (_, index) => ({
       bagNo: '',
-      value: '',
+      seal: '',
       isEditable: index === 0,
     }));
     setBoxes(initialData);
@@ -48,18 +51,17 @@ export default function NoOfTwoBoxComponent({ number , bagsCollected }: { number
 
   const handleValueChange = (index: number, text: string) => {
     const updatedBoxes = [...boxes];
-    updatedBoxes[index].value = text;
+    updatedBoxes[index].seal = text;
     setBoxes(updatedBoxes);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = () => {             
     console.log("Submitted Data:", boxes);
-    bagsCollected(boxes);
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {boxes.map((box, index) => (
+      {boxes.map((box:any, index:any) => (
         <View key={index} style={styles.box}>
           <TextInput
             style={[styles.input, { backgroundColor: index === 0 ? '#fff' : '#eee' }]}
@@ -71,7 +73,7 @@ export default function NoOfTwoBoxComponent({ number , bagsCollected }: { number
           <TextInput
             style={styles.input}
             placeholder="Value"
-            value={box.value}
+            value={box.seal}
             editable={box.isEditable}
             onChangeText={text => handleValueChange(index, text)}
           />
@@ -91,6 +93,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     // marginBottom: 10,
     gap: 10,
+    margin : 3,
   },
   input: {
     flex: 1,
