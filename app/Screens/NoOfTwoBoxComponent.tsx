@@ -1,104 +1,118 @@
-import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import React, { useEffect } from "react";
+import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 export interface BoxData {
   bagNo: string;
   seal: string;
-  isEditable: boolean;
 }
 
-export default function NoOfTwoBoxComponent({ number ,
- boxes, setBoxes }:any
-  //  { number: number, bagsCollected?:any, boxes : [] }
-  ) {
- 
-
-  useEffect(() => {
-    // Initialize box states
-    const initialData: BoxData[] = Array.from({ length: number }, (_, index) => ({
-      bagNo: '',
-      seal: '',
-      isEditable: index === 0,
-    }));
-    setBoxes(initialData);
-  }, [number]);
-
-  const handleFirstBagNoChange = (text: string) => {
-  const updatedBoxes = [...boxes];
-  updatedBoxes[0].bagNo = text;
-
-  // Auto-fill other bagNos
-  const match = text.match(/^([A-Za-z]+)(\d+)$/); // letters + numbers
-  if (match) {
-    const prefix = match[1];
-    const base = parseInt(match[2], 10);
-
-    for (let i = 1; i < number; i++) {
-      updatedBoxes[i].bagNo = `${prefix}${base + i}`;
-      updatedBoxes[i].isEditable = true;
-    }
-  } else {
-    // If pattern doesn't match, clear rest
-    for (let i = 1; i < number; i++) {
-      updatedBoxes[i].bagNo = '';
-      updatedBoxes[i].isEditable = false;
-    }
-  }
-
-  setBoxes(updatedBoxes);
-};
-
-
-  const handleValueChange = (index: number, text: string) => {
+export default function NoOfTwoBoxComponent({
+  number,
+  boxes,
+  setBoxes,
+}: {
+  number: number;
+  boxes: BoxData[];
+  setBoxes: (boxes: BoxData[]) => void;
+}) {
+  // Auto-fill logic (works for bagNo & seal)
+  const handleAutoFill = (field: "bagNo" | "seal", text: string) => {
     const updatedBoxes = [...boxes];
-    updatedBoxes[index].seal = text;
+    updatedBoxes[0][field] = text;
+
+    const match = text.match(/^([A-Za-z]+)(\d+)$/);
+    const numberOnlyMatch = text.match(/^(\d+)$/);
+
+    if (match) {
+      // Prefix + number (e.g., ABC1001)
+      const prefix = match[1];
+      const base = parseInt(match[2], 10);
+      for (let i = 1; i < number; i++) {
+        if (!updatedBoxes[i]) updatedBoxes[i] = { bagNo: "", seal: "" };
+        updatedBoxes[i][field] = `${prefix}${base + i}`;
+      }
+    } else if (numberOnlyMatch) {
+      const base = parseInt(numberOnlyMatch[1], 10);
+      for (let i = 1; i < number; i++) {
+        if (!updatedBoxes[i]) updatedBoxes[i] = { bagNo: "", seal: "" };
+        updatedBoxes[i][field] = `${base + i}`;
+      }
+    } else {
+      for (let i = 1; i < number; i++) {
+        if (!updatedBoxes[i]) updatedBoxes[i] = { bagNo: "", seal: "" };
+        updatedBoxes[i][field] = text;
+      }
+    }
+
     setBoxes(updatedBoxes);
   };
 
-  const handleSubmit = () => {             
-    console.log("Submitted Data:", boxes);
+  useEffect(() => {
+    let updated = [...boxes];
+    
+    if (number > boxes.length) {
+      for (let i = boxes.length; i < number; i++) {
+        updated.push({ bagNo: `${i + 1}`, seal: "" });
+      }
+    }
+
+    setBoxes(updated);
+  }, [number, boxes.length, setBoxes]);
+
+  const handleChange = (
+    index: number,
+    field: "bagNo" | "seal",
+    text: string
+  ) => {
+    const updatedBoxes = [...boxes];
+    if (!updatedBoxes[index]) updatedBoxes[index] = { bagNo: "", seal: "" };
+    updatedBoxes[index][field] = text;
+    setBoxes(updatedBoxes);
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {boxes.map((box:any, index:any) => (
+      {boxes.slice(0, number).map((box, index) => (
         <View key={index} style={styles.box}>
           <TextInput
-            style={[styles.input, { backgroundColor: index === 0 ? '#fff' : '#eee' }]}
+            style={styles.input}
             placeholder="Bag No"
             value={box.bagNo}
-            editable={index === 0}
-            onChangeText={text => handleFirstBagNoChange(text)}
+            onChangeText={text =>
+              index === 0
+                ? handleAutoFill("bagNo", text)
+                : handleChange(index, "bagNo", text)
+            }
           />
           <TextInput
             style={styles.input}
-            placeholder="Value"
+            placeholder="Seal"
             value={box.seal}
-            editable={box.isEditable}
-            onChangeText={text => handleValueChange(index, text)}
+            onChangeText={text =>
+              index === 0
+                ? handleAutoFill("seal", text)
+                : handleChange(index, "seal", text)
+            }
           />
         </View>
       ))}
-
-      {/* <Button title="Submit" onPress={handleSubmit} /> */}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    // padding: 20,
+    paddingBottom: 0,
   },
   box: {
-    flexDirection: 'row',
-    // marginBottom: 10,
+    flexDirection: "row",
     gap: 10,
-    margin : 3,
+    margin: 3,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     padding: 7,
     borderRadius: 5,
   },

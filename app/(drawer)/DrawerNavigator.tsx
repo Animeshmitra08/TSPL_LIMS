@@ -4,24 +4,98 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { Avatar, Button, Divider, Text } from 'react-native-paper';
 import HomeScreen from '../Screens/Home';
 import RakeSampleForm from '../Screens/RakeSampleform';
+import { LinearGradient } from "expo-linear-gradient";
+import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import LandingScreen from '../Screens/Landing';
+import { useAuth } from '@/context/AuthContext';
 
 type DrawerNavigatorProps = {
   onLogout: () => Promise<void>;
 };
 
-const Drawer = createDrawerNavigator();
+
+export type DrawerParamList = {
+  Home: undefined;
+  "Biomass Sampling": undefined;
+  "Coal Sampling": undefined;
+};
+
+
+const Drawer = createDrawerNavigator<DrawerParamList>();
 
 export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
   return (
     <Drawer.Navigator
       screenOptions={{
         headerShown: true,
+        drawerHideStatusBarOnOpen: true,
+        drawerStyle: {
+          backgroundColor: "#fff",
+          borderTopRightRadius: 20,
+          borderBottomRightRadius: 20,
+          overflow: "hidden",
+        },
       }}
-      drawerContent={(props) => <CustomDrawer {...props} onLogout={onLogout} />}
+      drawerContent={(props) => (
+        <CustomDrawer {...props} onLogout={onLogout} />
+      )}
     >
-      <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name='Rank Sample' component={RakeSampleForm} />
-      
+      <Drawer.Screen 
+        name="Home"
+        component={LandingScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <MaterialIcons name="home" size={size} color={color} />
+          ),
+          headerBackground: () => (
+            <LinearGradient
+              colors={["#4a90e2", "#357ABD"]}
+              style={{ flex: 1 }}
+            />
+          ),
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold" },
+        }}
+      />
+
+
+      <Drawer.Screen
+        name="Coal Sampling"
+        component={RakeSampleForm}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            // <MaterialIcons name="fire" size={size} color={color} />
+            <FontAwesome5 name="fire" size={size} color={color} />
+          ),
+          headerBackground: () => (
+            <LinearGradient
+              colors={["#276dbdff", "#193b86ff"]}
+              style={{ flex: 1 }}
+            />
+          ),
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold" },
+        }}
+      />
+
+
+      <Drawer.Screen
+        name="Biomass Sampling"
+        component={HomeScreen}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <MaterialIcons name="eco" size={size} color={color} />
+          ),
+          headerBackground: () => (
+            <LinearGradient
+              colors={["#ec905bff", "#eb6a2eff"]}
+              style={{ flex: 1 }}
+            />
+          ),
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold" },
+        }}
+      />      
     </Drawer.Navigator>
   );
 }
@@ -42,13 +116,17 @@ async function handleLogout(onLogout: () => Promise<void>) {
 }
 
 function CustomDrawer(props: any) {
-  const { onLogout } = props;
+
+  const { user, logout } = useAuth();
 
   return (
     <DrawerContentScrollView {...props}>
-      <View style={styles.header}>
-        <Avatar.Icon icon="account" size={48} />
-        <Text style={styles.username}>Hello, User</Text>
+      <View 
+      style={styles.header}
+      >
+        <Avatar.Icon icon="account" size={48} style={{ backgroundColor: "blue" }} />
+        <Text style={styles.username}>Welcome</Text>
+        <Text style={styles.username}>{user?.fullname}</Text>
       </View>
       <Divider style={{ marginVertical: 8 }} />
       <DrawerItemList  {...props} />
@@ -57,7 +135,7 @@ function CustomDrawer(props: any) {
         icon="logout"
         mode="outlined"
         onPress={async () => {
-          await handleLogout(onLogout)
+          await handleLogout(logout)
         }}
         style={styles.logout}
       >
@@ -69,12 +147,17 @@ function CustomDrawer(props: any) {
 
 const styles = StyleSheet.create({
   header: {
-    alignItems: 'center',
-    marginVertical: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 30,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   username: {
     marginTop: 8,
-    fontWeight: 'bold',
+    fontWeight: "bold",
+    // color: "white", 
+    fontSize: 16,
   },
   logout: {
     margin: 16,

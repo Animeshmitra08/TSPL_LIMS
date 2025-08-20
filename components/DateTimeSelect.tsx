@@ -5,7 +5,7 @@ import { Modal, Platform, StyleSheet, Text, View } from "react-native";
 import { Button, TextInput } from 'react-native-paper';
 
 const DateTimeComponent = (
-    { label, date, setDate, mode, style, disabled }: any
+    { label, date, setDate, mode, style, disabled, editable }: any
 ) => {
     const [open, setOpen] = useState(false);
     const handleOpen = () => {
@@ -16,18 +16,33 @@ const DateTimeComponent = (
     const [date1Open, setDate1Open] = useState<any>();
     const [time1Open, setTime1Open] = useState<any>();
 
+    // useEffect(() => {
+    //     if (Platform.OS === "android") {
+    //         if (!(date1 && time1)) return;
+
+    //         const dateStr = date1.toLocaleDateString();
+    //         const timeStr = time1.toLocaleTimeString();
+
+    //         const parsedDate = dayjs(`${dateStr} ${timeStr}`, 'M/D/YYYY h:mm:ss A');
+    //         if (parsedDate.isValid()) {
+    //             setDate(parsedDate.toDate());
+    //         }
+    //     }
+    // }, [date1, time1]);
+
     useEffect(() => {
-        if (Platform.OS === "android") {
-            if (!(date1 && time1)) return;
+    if (Platform.OS === "android") {
+        if (!(date1 && time1)) return;
 
-            const dateStr = date1.toLocaleDateString();
-            const timeStr = time1.toLocaleTimeString();
+        // Format consistently for parsing
+        const dateStr = dayjs(date1).format("YYYY-MM-DD");
+        const timeStr = dayjs(time1).format("HH:mm:ss");
 
-            const parsedDate = dayjs(`${dateStr} ${timeStr}`, 'M/D/YYYY h:mm:ss A');
-            if (parsedDate.isValid()) {
-                setDate(parsedDate.toDate());
-            }
+        const parsedDate = dayjs(`${dateStr} ${timeStr}`, "YYYY-MM-DD HH:mm:ss");
+        if (parsedDate.isValid()) {
+        setDate(parsedDate.toDate());   // keep JS Date object in state
         }
+    }
     }, [date1, time1]);
 
     return (<View>
@@ -38,6 +53,7 @@ const DateTimeComponent = (
             style={style}
             left={<TextInput.Icon icon="calendar" />} // Icon on the left side
 disabled={disabled}
+            editable={editable}
 
             mode={mode ?? "outlined"} value={date?.toLocaleString()} onPress={handleOpen} placeholder={label ?? "Select Date & time"} />
         {open && (Platform.OS === "ios" ? <DateTimePicker
@@ -101,8 +117,8 @@ disabled={disabled}
                             <Button mode="outlined" onPress={() => setTime1Open(true)}>
                                 Time Select
                             </Button>
-                            <Button mode="outlined" onPress={() => setOpen(false)}>
-                                Close
+                            <Button mode="contained" onPress={() => setOpen(false)}>
+                                {date1 && time1 ? "Save" : "Close"}
                             </Button>
                         </View>
                         {
@@ -265,8 +281,8 @@ export function DateTimeComponentByForm({ label, formData, setFormData, name, mo
                             <Button mode="outlined" onPress={() => setTime1Open(true)}>
                                 Time Select
                             </Button>
-                            <Button mode="outlined" onPress={() => setOpen(false)}>
-                                Close
+                            <Button mode="contained" onPress={() => setOpen(false)}>
+                                {date1 && time1 ? "Save" : "Close"}
                             </Button>
                         </View>
                         {

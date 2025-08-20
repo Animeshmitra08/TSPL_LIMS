@@ -1,296 +1,129 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
+import {
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableWithoutFeedback,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 import { Button } from "react-native-paper";
+import React, { useState } from "react";
 
 export function SelectComponentBYFORM({
-    field,
-    formData,
-    handleChange,
-    isVisible,
-    setIsVisible,
-    screenHeight,
-    screenWidth,
-    // setSampleingMode,
+  field,
+  formData,
+  handleChange,
+  isVisible,
+  setIsVisible,
+  screenHeight,
+  screenWidth,
+  dataList,
+  onOpen,
 }: any) {
-    return (
+  const [loading, setLoading] = useState(false);
+  const [options, setOptions] = useState([]);
 
-        <TouchableWithoutFeedback onPress={() => setIsVisible(false)} >
-            <View style={styles.container}>
-               {formData[field.name] !== field.label && <Text style={{
-                    // marginHorizontal : 2,
-                    // fontSize : 12,
-                }}>{field.label}</Text>}
-                <Text
-                 style={styles.selectLabel}
-                    onPress={() => setIsVisible(true)}
-                    
-                >
-                    {formData[field.name] || `Select field`}
-                </Text>
+  const openDropdown = async () => {
+    setLoading(true);
+    setIsVisible(true);
 
-                <Modal
-                    visible={isVisible}
-                    animationType="slide"
-                    transparent
-                >
-                    <TouchableWithoutFeedback>
-                        <View style={styles.modalOverlay}>
-                            <View
-                                style={{
-                                    height: screenHeight * 0.5,
-                                    backgroundColor: 'white',
-                                    borderTopLeftRadius: 20,
-                                    borderTopRightRadius: 20,
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 10,
-                                    rowGap: 10,
-                                }}
-                            >
-                                <Button
-                                    style={{ width: screenWidth * 0.95 }}
-                                    mode="contained-tonal"
-                                    onPress={() => setIsVisible(false)}
-                                >
-                                    Close
-                                </Button>
-                                <SelectList
-                                    setSelected={(val: string) => {
-                                        handleChange(field.name, val);
-                                    }}
-                                    search={true}
-                                    onSelect={() => {
-                                        // setIsVisible(false);
-                                    }}
-                                    data={field.options}
-                                    save="value"
-                                    boxStyles={{
-                                        width: screenWidth * 0.95,
-                                        borderWidth: 0,
-                                        borderColor: 'transparent',
-                                        backgroundColor: '#f1f1f1',
-                                        borderRadius: 10,
-                                    }}
-                                    inputStyles={{
-                                        padding: 2,
-                                        fontSize: 16,
-                                        color: '#333',
-                                    }}
-                                    dropdownStyles={{
-                                        borderWidth: 0,
-                                        backgroundColor: '#f1f1f1',
-                                        elevation: 3,
-                                        width: screenWidth * 0.95
-                                    }}
-                                    closeicon={
-                                        <Ionicons
-                                            name="close-circle"
-                                            size={20}
-                                            color={'#999'}
-                                            style={{ marginLeft: 10 }}
-                                        />
-                                    }
-                                />
-                            </View>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </Modal>
-            </View>
-        </TouchableWithoutFeedback>
-    );
-};
+    if (onOpen) {
+      const fetchedData = await onOpen();
+      setOptions(fetchedData ?? []);
+    }
 
-export function SelectComponentBYState({
-    field,
-    isVisible,
-    setIsVisible,
-    screenHeight,
-    screenWidth,
-    value,
-    setValue,
-}: any) {
-    
-    return (<View>
-        {/* <Text style={styles.label}>{field.label}</Text> */}
-        <Text style={styles.selectLabel}
-            onPress={() => setIsVisible(true)}
-        >
-            {value || `Select field`}
-        </Text>
-        <Modal
-            visible={isVisible}
-            animationType="slide"
-            transparent
-        >
+    setTimeout(() => {
+      setLoading(false);
+    }, 300);
+  };
+
+
+  return (
+    <View style={styles.container}>
+      {formData[field.name] !== field.label && <Text>{field.label}</Text>}
+
+      <Text style={styles.selectLabel} onPress={openDropdown}>
+        {formData[field.name] || `Select field`}
+      </Text>
+
+      <Modal visible={isVisible} animationType="slide" transparent>
+        {/* This overlay closes modal when tapping outside */}
+        <TouchableWithoutFeedback onPress={() => setIsVisible(false)}>
+          <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-                <View style={styles.modalOverlay}>
-                    <View
-                        style={{
-                            height: screenHeight * 0.3,
-                            backgroundColor: 'white',
-                            borderTopLeftRadius: 20,
-                            borderTopRightRadius: 20,
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            rowGap: 10,
-                        }}
-                    >
-                        <Button
-                            style={{ width: screenWidth * 0.95 }}
-                            mode="contained-tonal"
-                            onPress={() => setIsVisible(false)}
-                        >
-                            Close
-                        </Button>
-                        <SelectList
-                            setSelected={(val: string) => {
-                                setValue(val);
-                                setIsVisible(true);
-                            }}
-                            onSelect={() => {
-                                setIsVisible(true);
-                            }}
-                            data={field.options}
-                            save="value"
-                            boxStyles={{
-                                width: screenWidth * 0.95,
-                                borderWidth: 0,
-                                borderColor: 'transparent',
-                                backgroundColor: '#f1f1f1',
-                                borderRadius: 10,
-                            }}
-                            inputStyles={{
-                                padding: 2,
-                                fontSize: 16,
-                                color: '#ccc',
-                            }}
-                            dropdownStyles={{
-                                borderWidth: 0,
-                                backgroundColor: '#f1f1f1',
-                                elevation: 3,
-                                width: screenWidth * 0.95
-                            }}
-                            closeicon={
-                                <Ionicons
-                                    name="close-circle"
-                                    size={20}
-                                    color={'#999'}
-                                    style={{ marginLeft: 10 }}
-                                />
-                            }
-                        />
-                    </View>
-                </View>
-            </TouchableWithoutFeedback>
-        </Modal>
-    </View>
-    );
-};
+              <View
+                style={{
+                  height: screenHeight * 0.5,
+                  backgroundColor: "white",
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  rowGap: 10,
+                }}
+              >
+                <Button
+                  style={{ width: screenWidth * 0.95 }}
+                  mode="contained-tonal"
+                  onPress={() => setIsVisible(false)}
+                >
+                  Close
+                </Button>
 
+                {loading ? (
+                  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                    <ActivityIndicator animating={true} size="large" />
+                    <Text style={{ marginTop: 10 }}>Loading...</Text>
+                  </View>
+                ) : (
+                  <SelectList
+                    setSelected={(val: string) => {
+                      handleChange(field.name, val);
+                      setIsVisible(false);
+                    }}
+                    data={dataList ?? []}
+                    save="value"
+                    boxStyles={{
+                      borderWidth: 0,
+                      backgroundColor: "#f1f1f1",
+                      borderRadius: 10,
+                    }}
+                    inputStyles={{
+                      fontSize: 16,
+                      color: "#333",
+                    }}
+                    dropdownStyles={{
+                      backgroundColor: "#f1f1f1",
+                      elevation: 3,
+                    }}
+                  />
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-    container : {
-     marginBottom :10,
-    },
-    selectLabel: {
-        borderWidth: 1,
-        borderColor: 'black',
-        padding: 13,
-        borderRadius: 3,
-        fontSize: 16,
-        opacity : .7
-    },
-    modalOverlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-})
-
-// rank sampling report form
-// export const SelectComponent = ({
-//     field,
-//     formData,
-//     handleChange,
-//     isVisible,
-//     setIsVisible,
-//     screenHeight,
-//     screenWidth
-// }: any) => {
-//     return (<View>
-//         <Text style={styles.label}>{field.label}</Text>
-//         <Text style={styles.selectLabel}
-//             onPress={() => setIsVisible(true)}
-//         >
-//             {formData[field.name] || `Select field`}
-//         </Text>
-
-//         <Modal
-//             visible={isVisible}
-//             animationType="slide"
-//             transparent
-//         >
-//             <TouchableWithoutFeedback>
-//                 <View style={styles.modalOverlay}>
-//                     <View
-//                         style={{
-//                             height: screenHeight * 0.5,
-//                             backgroundColor: 'white',
-//                             borderTopLeftRadius: 20,
-//                             borderTopRightRadius: 20,
-//                             paddingHorizontal: 12,
-//                             paddingVertical: 10,
-//                             rowGap: 10,
-//                         }}
-//                     >
-//                         <Button
-//                             style={{ width: screenWidth * 0.95 }}
-//                             mode="contained-tonal"
-//                             onPress={() => setIsVisible(false)}
-//                         >
-//                             Close
-//                         </Button>
-//                         <SelectList
-//                             setSelected={(val: string) => {
-//                                 handleChange(field.name, val);
-//                                 setIsVisible(true);
-//                             }}
-//                             onSelect={() => {
-//                                 setIsVisible(true);
-//                             }}
-//                             data={field.options}
-//                             save="value"
-//                             boxStyles={{
-//                                 width: screenWidth * 0.95,
-//                                 borderWidth: 0,
-//                                 borderColor: 'transparent',
-//                                 backgroundColor: '#f1f1f1',
-//                                 borderRadius: 10,
-//                             }}
-//                             inputStyles={{
-//                                 padding: 4,
-//                                 fontSize: 16,
-//                                 color: '#333',
-//                             }}
-//                             dropdownStyles={{
-//                                 borderWidth: 0,
-//                                 backgroundColor: '#f1f1f1',
-//                                 elevation: 3,
-//                                 width: screenWidth * 0.95
-//                             }}
-//                             closeicon={
-//                                 <Ionicons
-//                                     name="close-circle"
-//                                     size={20}
-//                                     color={'#999'}
-//                                     style={{ marginLeft: 10 }}
-//                                 />
-//                             }
-//                         />
-//                     </View>
-//                 </View>
-//             </TouchableWithoutFeedback>
-//         </Modal>
-//     </View>
-//     );
-// };
+  container: {
+    marginBottom: 10,
+  },
+  selectLabel: {
+    borderWidth: 1,
+    borderColor: "black",
+    padding: 13,
+    borderRadius: 3,
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+});

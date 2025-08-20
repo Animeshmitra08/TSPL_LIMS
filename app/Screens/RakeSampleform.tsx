@@ -1,53 +1,41 @@
 import AlertMessage from "@/components/Cards/AlertMessage";
 import DateTimeComponent from "@/components/DateTimeSelect";
 import { SelectComponentBYFORM } from "@/components/SelectComponent";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, useWindowDimensions } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { Button, Card, Text, TextInput } from "react-native-paper";
 import NoOfTwoBoxComponent, { BoxData } from "./NoOfTwoBoxComponent";
+import axios from 'axios';
+import dayjs from "dayjs";
+import { useFocusEffect } from "@react-navigation/native";
+
+const initialFormData = {
+  clientName: "TALWANDI SABO POWER LIMITED, TALWANDI",
+  rakeNo: "",
+  commodity: "",
+  rakePlacementDateAndTime: undefined as Date | undefined,
+  rakeUnloadingCommenceDateAndTime: undefined as Date | undefined,
+  rakeUnloadingCompletedDateAndTime: undefined as Date | undefined,
+  dateOfSampleCollection: "",
+  SampleCollectionStartDateAndTime: undefined as Date | undefined,
+  SampleCollectionEndDateAndTime: undefined as Date | undefined,
+  noOfBagsCollected: 0,
+  samplingAgency: "",
+  supervisor: "",
+  samplers: "",
+  allSampleBagsSealChecked: "",
+  samplingMode: "",
+  autoSampler: "",
+  fromWagon: "",
+  toWagon: "",
+  noOfWagons: 0,
+  weatherCondition: "",
+  remarks: ""
+};
 
 export default function RakeSampleForm() {
-  const [formData, setFormData] = useState<{
-    clientName: string,
-    rankNo: string,
-    commodity: string,
-    rakePlacementDateAndTime: Date | undefined,
-    rakeUnloadingCommenceDateAndTime: Date | undefined,
-    rakeUnloadingCompletedDateAndTime: Date | undefined,
-    dateOfSampleCollection: string,
-    SampleCollectionStartDateAndTime: Date | undefined,
-    SampleCollectionEndDateAndTime: Date | undefined,
-    noOfBagsCollected: number,
-    samplingAgency: string,
-    supervisor: string,
-    samplers: string,
-    allSampleBagsSealChecked: string,
-    samplingMode: string,
-    autoSampler: string,
-    noOfWagons: number,
-    weatherCondition: string,
-    remarks: number,
-  }>({
-    clientName: "Raj Soni", // api data
-    rankNo: "",
-    commodity: "",
-    rakePlacementDateAndTime: undefined,
-    rakeUnloadingCommenceDateAndTime: undefined,
-    rakeUnloadingCompletedDateAndTime: undefined,
-    dateOfSampleCollection: "",   // rakePlacementDateAndTime of date
-    SampleCollectionStartDateAndTime: undefined,   //rakeUnloadingCompletedDateAndTime 
-    SampleCollectionEndDateAndTime: undefined,//rakeUnloadingCompletedDateAndTime
-    noOfBagsCollected: 0,
-    samplingAgency: "",
-    supervisor: "",
-    samplers: "",
-    allSampleBagsSealChecked: "",
-    samplingMode: "",
-    autoSampler: "",
-    noOfWagons: 0,
-    weatherCondition: "",
-    remarks: 0,
-  });
+  
+  const [formData, setFormData] = useState(initialFormData);
   // form data change function
   const handleChange = (field: any, val: any) => {
     setFormData({ ...formData, [field]: val })
@@ -56,38 +44,164 @@ export default function RakeSampleForm() {
   const screenHeight = Dimensions.get("window").height;
   const screenWidht = Dimensions.get("window").width;
   // select bar dialogs
-  const [isRankNo, setIsRankNo] = useState<boolean>(false);
   const [isCommodity, setIsCommodity] = useState<boolean>(false);
   const [isWeather, setIsWeather] = useState<boolean>(false);
   const [isAutoSampler, setIsIsAutoSampler] = useState<boolean>(false);
   const [isSampleMode, setIsSampleMode] = useState<boolean>(false)
   const [isSampleBagsChecked, setIsSampleBagsChecked] = useState<boolean>(false);
+  const [rakeModalVisible, setRakeModalVisible] = useState<boolean>(false);
   // date & time
-  const [customDateTimeRakePlacementTimeAndDate, setCustomDateTimeRakePlacementTimeAndDate] = useState<any>();
-  const [customDateTimeRakeUnloadingCommenceTimeAndDate, setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate] = useState<any>();
-  const [customDateTimeRakeUnloadingCompletedTimeAndDate, setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate] = useState<any>();
+  const [rpDateTime, setRpDateTime] = useState<any>();
+  const [rUnloadDateTime, setRUnloadDateTime] = useState<any>();
+  const [rakeCompleteDT, setRakeCompleteDT] = useState<any>();
 
   // Numbers
   const [boxes, setBoxes] = useState<BoxData[]>([])
 
+  
+  const [rakeNumbers, setRakeNumbers] = useState<any[]>([]);
+  const [commodities, setCommodities] = useState<{ key: string; value: string }[]>([]);
+  const [autoSamplers, setAutoSamplers] = useState<{ key: string; value: string }[]>([]);
+  const [weatherConditions, setWeatherConditions] = useState<{ key: string; value: string }[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  function parseRakeDateTime(dateStr: string, timeStr: string): Date | undefined {
+    if (!dateStr || !timeStr || dateStr === "00000000") return undefined;
+
+    const year = parseInt(dateStr.substring(0, 4));
+    const month = parseInt(dateStr.substring(4, 6)) - 1;
+    const day = parseInt(dateStr.substring(6, 8));
+
+    const hour = parseInt(timeStr.substring(0, 2));
+    const minute = parseInt(timeStr.substring(2, 4));
+    const second = parseInt(timeStr.substring(4, 6));
+
+    return new Date(year, month, day, hour, minute, second);
+  }
+
+  function formatToSAPDateTime(date: Date) {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    return {
+      planT_ARV_DATE: `${year}${month}${day}`,
+      planT_ARV_TIME: `${hours}${minutes}${seconds}`
+    };
+  }
+
+  // helper
+  const formatSapDate = (raw?: string | number | null) => {
+    if (raw === null || raw === undefined) return "";
+    const s = String(raw).trim();
+    // accept only exactly 8 digits like 20250816 and ignore placeholders
+    if (!/^\d{8}$/.test(s) || s === "00000000") return "";
+    const parsed = dayjs(s, "YYYYMMDD", true); // strict parse
+    return parsed.isValid() ? parsed.format("DD/MM/YYYY") : "";
+  };
+
+
   // set disbalebed fields values
   useEffect(() => {
-    const onlyDate = new Date(customDateTimeRakeUnloadingCommenceTimeAndDate);
+    const onlyDate = new Date(rUnloadDateTime);
     setFormData((prev) => ({
       ...prev,
       dateOfSampleCollection: onlyDate.toLocaleDateString(),
-      SampleCollectionStartDateAndTime: customDateTimeRakeUnloadingCommenceTimeAndDate,
+      SampleCollectionStartDateAndTime: rUnloadDateTime,
     }));
-  }, [customDateTimeRakeUnloadingCommenceTimeAndDate]);
-  console.log(formData.dateOfSampleCollection, "date");
+  }, [rUnloadDateTime]);
 
   useEffect(() => {
+    if (rUnloadDateTime) {
+      const { planT_ARV_DATE } = formatToSAPDateTime(new Date(rUnloadDateTime));
 
-    setFormData((prev) => ({
-      ...prev,
-      SampleCollectionEndDateAndTime: customDateTimeRakeUnloadingCompletedTimeAndDate,
-    }));
-  }, [customDateTimeRakeUnloadingCompletedTimeAndDate]);
+      setFormData((prev) => ({
+        ...prev,
+        dateOfSampleCollection: planT_ARV_DATE, 
+        dateOfSampleCollectionDisplay: dayjs(rUnloadDateTime).format("DD/MM/YYYY"), 
+        SampleCollectionStartDateAndTime: rUnloadDateTime,
+      }));
+    }
+  }, [rUnloadDateTime]);
+
+  useEffect(() => {
+    if (rakeCompleteDT) {
+      setFormData(prev => ({
+        ...prev,
+        SampleCollectionEndDateAndTime: rakeCompleteDT
+      }));
+    }
+  }, [rakeCompleteDT]);
+
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(
+          "https://tsplindia.info/TSPLSAMPLING/api/Sampling/POWERTYPE/COAL"
+        );
+        const data = res.data;
+
+        if (Array.isArray(data.tRakeNo)) {
+          setRakeNumbers(
+            data.tRakeNo
+              .filter((item: any) => item.tspL_RAKE_ID?.trim() !== "")
+              .map((item: any, index: number) => ({
+                key: String(index),
+                value: item.tspL_RAKE_ID,
+                planT_ARV_DATE: item.planT_ARV_DATE,
+                froM_WAGON: item.froM_WAGON,
+                tO_WAGON: item.tO_WAGON,
+                planT_ARV_TIME: item.planT_ARV_TIME,
+                totaL_WAGON: item.totaL_WAGON,
+              }))
+          );
+        }
+
+        // Filter dropdown data by field
+        if (Array.isArray(data.tDropDownData)) {
+          setCommodities(
+            data.tDropDownData
+              .filter((d: any) => d.field === "COMMODITY")
+              .map((d: any, index: number) => ({
+                key: String(index),
+                value: d.value,
+              }))
+          );
+
+          setAutoSamplers(
+            data.tDropDownData
+              .filter((d: any) => d.field === "AUTO_SAMPLER")
+              .map((d: any, index: number) => ({
+                key: String(index),
+                value: d.value,
+              }))
+          );
+
+          setWeatherConditions(
+            data.tDropDownData
+              .filter((d: any) => d.field === "WEATHER_COND")
+              .map((d: any, index: number) => ({
+                key: String(index),
+                value: d.value,
+              }))
+          );
+        }
+      } catch (err) {
+        console.error("API fetch error", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDropdownData();
+  }, []);
 
   const [alertVisible, setAlertVisible] = useState<boolean>(false);
   const [alertMessage, setAlertMessage] = useState('');
@@ -100,328 +214,547 @@ export default function RakeSampleForm() {
   function handleVisible() {
     setAlertVisible(false);
   }
+
+  const handleRakeNoChange = (selectedRakeId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      rakeNo: selectedRakeId,
+    }));
+
+    const selected = rakeNumbers.find((r) => r.tspL_RAKE_ID === selectedRakeId);
+
+    if (selected) {
+      // parse date & time
+      const parsedDate = parseRakeDateTime(selected.planT_ARV_DATE, selected.planT_ARV_TIME);
+      if (parsedDate) {
+        setRpDateTime(parsedDate);
+        setFormData((prev) => ({
+          ...prev,
+          rakePlacementDateAndTime: parsedDate,
+        }));
+      }
+
+      // wagons
+      setFormData((prev) => ({
+        ...prev,
+        fromWagon: selected.froM_WAGON || "",
+        toWagon: selected.tO_WAGON || "",
+        noOfWagons: selected.totaL_WAGON || "",
+      }));
+    }
+  };
+
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset everything when screen is focused
+      setFormData(initialFormData);
+      setBoxes([]);
+      setRpDateTime(undefined);
+      setRUnloadDateTime(undefined);
+      setRakeCompleteDT(undefined);
+    }, [])
+  );
+
+
+  const fetchRakeData = async (rakeId: string) => {
+    try {
+      const response = await axios.get(
+        `https://tsplindia.info/TSPLSAMPLING/api/Sampling/Filter/POWERTYPE/COAL?RakeNo=${rakeId}`
+      );
+      const data = response.data;
+
+      if (data?.tCoalSampling?.length > 0) {
+        const existing = data.tCoalSampling[0];
+
+        const placement = parseRakeDateTime(existing.rakE_PLACE_DT, existing.rakE_PLACE_TM);
+        const commence = parseRakeDateTime(existing.rakE_UNLD_CM_DT, existing.rakE_UNLD_CM_TM);
+        const complete = parseRakeDateTime(existing.rakE_UNLD_CT_DT, existing.rakE_UNLD_CT_TM);
+
+        setFormData((prev) => ({
+          ...prev,
+          rakeNo: existing.rakE_NO || rakeId,
+          clientName: existing.clienT_NAME || prev.clientName,
+          commodity: existing.commodity || "",
+          rakePlacementDateAndTime: placement,
+          rakeUnloadingCommenceDateAndTime: commence,
+          rakeUnloadingCompletedDateAndTime: complete,
+          dateOfSampleCollection: existing.samplE_COLLECTION_DATE || "",
+          SampleCollectionStartDateAndTime: parseRakeDateTime(existing.samplE_START_DT, existing.samplE_START_TM),
+          SampleCollectionEndDateAndTime: parseRakeDateTime(existing.samplE_COMPT_DT, existing.samplE_COMPT_TM),
+          noOfBagsCollected: Number(existing.nO_OF_BAGS_COL) || 0,
+          samplingAgency: existing.samplE_AGENCY || "",
+          supervisor: existing.supervisor || "",
+          samplers: existing.sampler || "",
+          allSampleBagsSealChecked: existing.seaL_CHECK || "",
+          samplingMode: existing.samplinG_MODE || "",
+          autoSampler: existing.autO_SAMPLER || "",
+          fromWagon: existing.froM_WAGON || "",
+          toWagon: existing.tO_WAGON || "",
+          noOfWagons: Number(existing.nO_OF_WAGONS) || 0,
+          weatherCondition: existing.weatheR_COND || "",
+          remarks: existing.remarks || "",
+        }));
+
+        if (Array.isArray(data.tCoalBioBags)) {
+          setBoxes(
+            data.tCoalBioBags.map((b: any) => ({
+              bagNo: b.baG_NO,
+              seal: b.seaL_NO
+            }))
+          );
+        }
+
+        setRpDateTime(placement);
+        setRUnloadDateTime(commence);
+        setRakeCompleteDT(complete);
+
+        setAlertMessage("Existing data loaded for this Rake");
+        setAlertType("info");
+        setAlertVisible(true);
+        setTimeout(() => setAlertVisible(false), 3000);
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          commodity: "",
+          rakeUnloadingCommenceDateAndTime: undefined,
+          rakeUnloadingCompletedDateAndTime: undefined,
+          dateOfSampleCollection: "",
+          SampleCollectionStartDateAndTime: undefined,
+          SampleCollectionEndDateAndTime: undefined,
+          noOfBagsCollected: 0,
+          samplingAgency: "",
+          supervisor: "",
+          samplers: "",
+          allSampleBagsSealChecked: "",
+          samplingMode: "",
+          autoSampler: "",
+          weatherCondition: "",
+          remarks: "",
+        }));
+        setBoxes([]);
+
+        setAlertMessage("No existing data. Enter new record.");
+        setAlertType("info");
+        setAlertVisible(true);
+        setTimeout(() => setAlertVisible(false), 3000);
+      }
+    } catch (error) {
+      console.error("Error fetching rake data:", error);
+      setFormData((prev) => ({
+        ...prev,
+        commodity: "",
+        rakeUnloadingCommenceDateAndTime: undefined,
+        rakeUnloadingCompletedDateAndTime: undefined,
+        dateOfSampleCollection: "",
+        SampleCollectionStartDateAndTime: undefined,
+        SampleCollectionEndDateAndTime: undefined,
+        noOfBagsCollected: 0,
+        samplingAgency: "",
+        supervisor: "",
+        samplers: "",
+        allSampleBagsSealChecked: "",
+        samplingMode: "",
+        autoSampler: "",
+        weatherCondition: "",
+        remarks: "",
+      }));
+      setBoxes([]);
+      setRUnloadDateTime(undefined);
+      setRakeCompleteDT(undefined);
+      
+      setAlertMessage("No existing data. Enter new record.");
+      setAlertType("info");
+      // setAlertVisible(true);
+      // setTimeout(() => setAlertVisible(false), 3000);
+    }
+  };
+
+
+
+
+
+  const handleSubmit = async () => {
+    let plantDate = "";
+    let plantTime = "";
+
+    if (rpDateTime) {
+      const { planT_ARV_DATE, planT_ARV_TIME } = formatToSAPDateTime(rpDateTime);
+      plantDate = planT_ARV_DATE;
+      plantTime = planT_ARV_TIME;
+    }
+
+    try {
+      const cleanedBoxes = boxes.map(({ bagNo, seal }) => ({
+        zmode: "COAL",
+        rakE_OR_TRUCK_NO: formData.rakeNo,
+        baG_NO: String(bagNo),
+        seaL_NO: seal,
+        entrY_BY: "APP_USER"
+      }));
+
+      if (!formValidaty(formData)) {
+        setAlertMessage("Please enter all fields");
+        setAlertType("error");
+        setAlertVisible(true);
+        setTimeout(() => setAlertVisible(false), 3000);
+        return;
+      }
+
+      // ✅ helper for SAP date/time
+      const getSAPDateTime = (date?: Date) => {
+        if (!date) return { date: "", time: "" };
+        const { planT_ARV_DATE, planT_ARV_TIME } = formatToSAPDateTime(date);
+        return { date: planT_ARV_DATE, time: planT_ARV_TIME };
+      };
+
+      const rakePlacement = getSAPDateTime(formData.rakePlacementDateAndTime);
+      const rakeUnloadStart = getSAPDateTime(formData.rakeUnloadingCommenceDateAndTime);
+      const rakeUnloadComplete = getSAPDateTime(formData.rakeUnloadingCompletedDateAndTime);
+      const sampleStart = getSAPDateTime(formData.SampleCollectionStartDateAndTime);
+      const sampleEnd = getSAPDateTime(formData.SampleCollectionEndDateAndTime);
+
+      // build payload with SAP formats
+      const payload = {
+        t_COAL_SAMPLING: [
+          {
+            slno: "",
+            rakE_NO: formData.rakeNo,
+            clienT_NAME: formData.clientName,
+            commodity: formData.commodity,
+            rakE_PLACE_DT: rakePlacement.date,
+            rakE_PLACE_TM: rakePlacement.time,
+            rakE_UNLD_CM_DT: rakeUnloadStart.date,
+            rakE_UNLD_CM_TM: rakeUnloadStart.time,
+            rakE_UNLD_CT_DT: rakeUnloadComplete.date,
+            rakE_UNLD_CT_TM: rakeUnloadComplete.time,
+            samplE_COLLECTION_DATE: formData.dateOfSampleCollection, 
+            samplE_START_DT: sampleStart.date,
+            samplE_START_TM: sampleStart.time,
+            samplE_COMPT_DT: sampleEnd.date,
+            samplE_COMPT_TM: sampleEnd.time,
+            nO_OF_BAGS_COL: String(formData.noOfBagsCollected),
+            samplE_AGENCY: formData.samplingAgency,
+            supervisor: formData.supervisor,
+            sampler: formData.samplers,
+            seaL_CHECK: formData.allSampleBagsSealChecked,
+            samplinG_MODE: formData.samplingMode,
+            nO_OF_WAGONS: String(formData.noOfWagons),
+            autO_SAMPLER: formData.autoSampler,
+            weatheR_COND: formData.weatherCondition,
+            remarks: formData.remarks,
+            createD_BY: "APP_USER"
+          }
+        ],
+        t_CAOL_BIO_BAGS_TBL: cleanedBoxes,
+        t_RAKE_NO: [
+          {
+            tspL_RAKE_ID: formData.rakeNo || "",
+            planT_ARV_DATE: plantDate,
+            planT_ARV_TIME: plantTime,
+            froM_WAGON: formData.fromWagon || "",
+            tO_WAGON: formData.toWagon || "",
+            totaL_WAGON: String(formData.noOfWagons) || ""
+          }
+        ],
+        t_BIO_SAMPLING: [],
+        t_REGNO: [{ regno: "" }],
+        t_DROPDOWN_DATA: [{ mandt: "", field: "", value: "" }]
+      };
+
+      console.log("Payload:", JSON.stringify(payload, null, 2));
+
+      const response = await axios.post(
+        "https://tsplindia.info/TSPLSAMPLING/api/Sampling/PTYPE/COAL",
+        payload,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("API Response:", response.data);
+
+      setAlertMessage("Data submitted successfully");
+      setAlertType("success");
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 3000);
+    } catch (error: any) {
+      console.error("Error submitting data:", error);
+      setAlertMessage(error.response?.data?.message || "Failed to submit data");
+      setAlertType("error");
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 3000);
+    }
+  };
+
   return (
-    <KeyboardAvoidingView behavior='padding' keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100} >
+   <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.container}>
-          <Text variant="titleLarge" style={styles.title}>Rake Sampling Report</Text>
-          {/* CLient name come from api */}
-          <TextInput
-            label="Client Name"
-            value={formData?.clientName}
-            onChangeText={(text) => setFormData({ ...formData, clientName: text })}
-            style={styles.input}
-            mode="outlined"
-            disabled={true}
-          />
-          {/* rank number is optional */}
-          <SelectComponentBYFORM
-            field={{
-              label: "Select Rank Number",
-              name: "rankNo",
-              options: [
-                { key: "1", value: "rankNo 1" },
-                { key: "2", value: "rankNo 2" },
-                { key: "3", value: "rankNo 3" },
-              ]
-            }}
-            formData={formData}
-            handleChange={handleChange}
-            isVisible={isRankNo}
-            setIsVisible={setIsRankNo}
-            screenHeight={screenHeight}
-            screenWidth={screenWidht}
-          />
-          {/* Commodity is optional */}
-          <SelectComponentBYFORM
-            field={{
-              label: "Select Commodity",
-              name: "commodity",
-              options: [
-                { key: "1", value: "commodity 1" },
-                { key: "2", value: "commodity 2" },
-                { key: "3", value: "commodity 3" },
-              ]
-            }}
-            formData={formData}
-            handleChange={handleChange}
-            isVisible={isCommodity}
-            setIsVisible={setIsCommodity}
-            screenHeight={screenHeight}
-            screenWidth={screenWidht}
-          />
-          {/* rake placement date & time */}
-          <DateTimeComponent
-            label={"Rake placement date & time"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakePlacementTimeAndDate}
-            setDate={(date: Date) => {
-              setCustomDateTimeRakePlacementTimeAndDate(date);
-              setFormData((prev) => ({
-                ...prev,
-                rakePlacementDateAndTime: date
-              }));
-            }}
-          />
-          {/* rake unloading commence date & time  */}
-          <DateTimeComponent
-            label={"Rake unloading commence"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakeUnloadingCommenceTimeAndDate}
-            setDate={(date: Date) => {
-              setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate(date)
-              setFormData((prev) => ({
-                ...prev,
-                rakeUnloadingCommenceDateAndTime: date
-              }))
-            }}
-          />
-          {/* rake unloading completed date & time  */}
-          <DateTimeComponent
-            label={"Rake unloading completed"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakeUnloadingCompletedTimeAndDate}
 
-            setDate={(date: Date) => {
-              setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate(date)
-              setFormData((prev) => ({
-                ...prev,
-                rakeUnloadingCompletedDateAndTime: date
-              }))
-            }}
-          />
-          {/* date of Sample of Collection */}
-          {/* <DateTimeComponent
-            label={"Date of Sample Collection"}
-            mode="outlined"
-            style={styles.input}
-            date={formData?.dateOfSampleCollection}
-            setDate={setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate}
-            disabled={true}
-          /> */}
-          <TextInput
-            label="Date of Sample Collection"
-            value={`${formData?.dateOfSampleCollection === "Invalid Date" ? "date of sample collection" : formData?.dateOfSampleCollection}`}
-            onChangeText={(text) => setFormData({ ...formData, dateOfSampleCollection: (text) })}
-            style={styles.input}
-            mode="outlined"
-            disabled={true}
-          />
-          {/*  date & time of sample collection start */}
-          <DateTimeComponent
-            label={"Sample collection start"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakeUnloadingCommenceTimeAndDate}
-            setDate={setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate}
-            disabled={true}
-          />
-          {/* rake date & time of sample collection completed  */}
-          <DateTimeComponent
-            label={"Sample collection completed"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTimeRakeUnloadingCompletedTimeAndDate}
-            setDate={setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate}
-            disabled={true}
-          />
-          {/* no of bags collected */}
-          <TextInput
-            label="No of bags Collected"
-            value={`${formData?.noOfBagsCollected}`}
-            onChangeText={(text) => {
-              setFormData({ ...formData, noOfBagsCollected: Number(text) })
-            }}
-            style={styles.input}
-            mode="outlined"
-            keyboardType="numeric"
-          />
-          {
-            Number(formData?.noOfBagsCollected) > 100 && <Text style={{
-              color : "red",
-              marginBottom : 10,
-              marginLeft : 2
-            }}>bags less than 100</Text>
-          }
-          {/* {
-            formData?.noOfBagsCollected > 0 && <NoOfTwoBoxComponent
-              number={formData?.noOfBagsCollected}
-              boxes={boxes}
-              setBoxes={setBoxes}
-            />
-          } */}
-          {
-            Number(formData?.noOfBagsCollected) < 100 && <NoOfTwoBoxComponent
-              number={formData?.noOfBagsCollected}
-              boxes={boxes}
-              setBoxes={setBoxes}
-            />
-          }
-          {/* sampling agency */}
-          <TextInput
-            label="Sampling Agency"
-            value={formData?.samplingAgency}
-            onChangeText={(text) => setFormData({ ...formData, samplingAgency: text })}
-            style={styles.input}
-            mode="outlined"
-          />
-          {/* supervisor */}
-          <TextInput
-            label="Supervisor Agency"
-            value={formData?.supervisor}
-            onChangeText={(text) => setFormData({ ...formData, supervisor: text })}
-            style={styles.input}
-            mode="outlined"
-          />
-          {/* sampling agency */}
-          <TextInput
-            label="Samplers"
-            value={formData?.samplers}
-            onChangeText={(text) => setFormData({ ...formData, samplers: text })}
-            style={styles.input}
-            mode="outlined"
-          />
-          {/* All Samples Bags Seal Checked is optional */}
-          <SelectComponentBYFORM
-            field={{
-              label: "All Sample Bags Seal Checked",
-              name: "allSampleBagsSealChecked",
-              options: [
-                { key: "1", value: "YES" },
-                { key: "2", value: "NO" },
-              ]
-            }}
-            formData={formData}
-            handleChange={handleChange}
-            isVisible={isSampleBagsChecked}
-            setIsVisible={setIsSampleBagsChecked}
-            screenHeight={screenHeight}
-            screenWidth={screenWidht}
-          />
-          {/* Sampling mode is optional */}
-          <SelectComponentBYFORM
-            field={{
-              label: "Sampling Mode",
-              name: "samplingMode",
-              options: [
-                { key: "1", value: "auto" },
-                { key: "2", value: "manual" },
-              ],
-            }}
-            formData={formData}
-            handleChange={handleChange}
-            isVisible={isSampleMode}
-            setIsVisible={setIsSampleMode}
-            screenHeight={screenHeight}
-            screenWidth={screenWidht}
-          />
-          {/* Auto Sample is optional */}
-          {
-            formData?.samplingMode === "auto" &&
-            <SelectComponentBYFORM
-              field={{
-                label: "Auto Sampler",
-                name: "autoSampler",
-                options: [
-                  { key: "1", value: "autoSampler 1" },
-                  { key: "2", value: "autoSampler 2" },
-                  { key: "3", value: "autoSampler 3" },
-                ],
-              }}
-              formData={formData}
-              handleChange={handleChange}
-              isVisible={isAutoSampler}
-              setIsVisible={setIsIsAutoSampler}
-              screenHeight={screenHeight}
-              screenWidth={screenWidht}
-            />}
-          {/* no of wagons */}
-          <TextInput
-            label="No of Wagons"
-            value={`${formData?.noOfWagons}`}
-            onChangeText={(text) => setFormData({ ...formData, noOfWagons: Number(text) })}
-            style={styles.input}
-            mode="outlined"
-            keyboardType="numeric"
-          />
-          {/* Weather is optional */}
-          <SelectComponentBYFORM
-            field={{
-              label: "Weather Condition",
-              name: "weatherCondition",
-              options: [
-                { key: "1", value: "fear" },
-                { key: "2", value: "rain" },
-                { key: "3", value: "cloudly" },
-              ]
-            }}
-            formData={formData}
-            handleChange={handleChange}
-            isVisible={isWeather}
-            setIsVisible={setIsWeather}
-            screenHeight={screenHeight}
-            screenWidth={screenWidht}
-          />
-          {/* remarks */}
-          <TextInput
-            label="Remarks"
-            value={`${formData?.remarks}`}
-            onChangeText={(text) => setFormData({ ...formData, remarks: Number(text) })}
-            style={styles.input}
-            mode="outlined"
-            keyboardType="numeric"
-          />
-          <Button mode="contained" onPress={() => {
-            console.log(JSON.stringify(formData));
-            if (!formValidaty(formData)) {
-              setAlertMessage("Please enter all fields");
-              setAlertType('error')
-              setAlertVisible(true)
-              setTimeout(() => {
-                setAlertVisible(false)
-              })
-              return;
-            } else {
-              setAlertMessage('Rake Sampling Report submitted');
-              setAlertType('success')
-              setAlertVisible(true)
-              setTimeout(() => {
-                setAlertVisible(false)
-              })
-            }
-            setFormData({
-              clientName: "Raj Soni", // api data
-              rankNo: "",
-              commodity: "",
-              rakePlacementDateAndTime: undefined,
-              rakeUnloadingCommenceDateAndTime: undefined,
-              rakeUnloadingCompletedDateAndTime: undefined,
-              dateOfSampleCollection: "",   // rakePlacementDateAndTime of date
-              SampleCollectionStartDateAndTime: undefined,   //rakeUnloadingCompletedDateAndTime 
-              SampleCollectionEndDateAndTime: undefined,//rakeUnloadingCompletedDateAndTime
-              noOfBagsCollected: 0,
-              samplingAgency: "",
-              supervisor: "",
-              samplers: "",
-              allSampleBagsSealChecked: "",
-              samplingMode: "",
-              autoSampler: "",
-              noOfWagons: 0,
-              weatherCondition: "",
-              remarks: 0,
-            });
-            setCustomDateTimeRakePlacementTimeAndDate(undefined);
-            setCustomDateTimeTimeRakeUnloadingCommenceTimeAndDate(undefined);
-            setCustomDateTimeTimeRakeUnloadingCompletedTimeAndDate(undefined)
+          {/* 1. Client & Rake Details */}
+          <Card style={styles.card}>
+            <Card.Title title="Client & Rake Details" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Content>
+              <TextInput
+                label="Client Name"
+                value={formData?.clientName}
+                style={styles.input}
+                mode="outlined"
+                editable={false}
+                multiline
+                scrollEnabled={false}
+              />
 
-          }} style={styles.button}>
+              <SelectComponentBYFORM
+                field={{ name: "rakeNo", label: "Rake No" }}
+                formData={formData}
+                handleChange={async (field: any, val: any) => {
+                  handleChange(field, val);
+                  const selected = rakeNumbers.find(r => r.value === val);
+                  if (selected) {
+                    const parsedDate = parseRakeDateTime(selected.planT_ARV_DATE, selected.planT_ARV_TIME);
+                    if (parsedDate) {
+                      setRpDateTime(parsedDate);
+                      setFormData(prev => ({
+                        ...prev,
+                        rakePlacementDateAndTime: parsedDate,
+                        noOfWagons: Number(selected.totaL_WAGON) || 0,
+                        fromWagon: selected.froM_WAGON || "",
+                        toWagon: selected.tO_WAGON || "",
+                      }));
+                    }
+                  };
+                  await fetchRakeData(val);
+                }}
+                isVisible={rakeModalVisible}
+                setIsVisible={setRakeModalVisible}
+                screenHeight={screenHeight}
+                screenWidth={screenWidht}
+                dataList={rakeNumbers}
+                onOpen={null}
+              />
+
+              <SelectComponentBYFORM
+                field={{ name: "commodity", label: "Select Commodity" }}
+                formData={formData}
+                handleChange={handleChange}
+                isVisible={isCommodity}
+                setIsVisible={setIsCommodity}
+                screenHeight={screenHeight}
+                screenWidth={screenWidht}
+                dataList={commodities}
+                onOpen={null}
+              />
+            </Card.Content>
+          </Card>
+
+          {/* 2. Dates & Sampling Timeline */}
+          <Card style={styles.card}>
+            <Card.Title title="Dates & Sampling Timeline" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Content>
+              <DateTimeComponent
+                label="Rake placement date & time"
+                mode="outlined"
+                style={styles.input}
+                date={rpDateTime}
+                setDate={(date: Date) => {
+                  setRpDateTime(date);
+                  setFormData(prev => ({ ...prev, rakePlacementDateAndTime: date }));
+                }}
+                editable={false}
+              />
+
+              <DateTimeComponent
+                label="Rake unloading commence"
+                mode="outlined"
+                style={styles.input}
+                date={rUnloadDateTime}
+                setDate={(date: Date) => {
+                  setRUnloadDateTime(date);
+                  setFormData(prev => ({ ...prev, rakeUnloadingCommenceDateAndTime: date }));
+                }}
+              />
+
+              <DateTimeComponent
+                label="Rake unloading completed"
+                mode="outlined"
+                style={styles.input}
+                date={rakeCompleteDT}
+                setDate={(date: Date) => {
+                  setRakeCompleteDT(date);
+                  setFormData(prev => ({ ...prev, rakeUnloadingCompletedDateAndTime: date }));
+                }}
+              />
+
+              <TextInput
+                label="Date of Sample Collection"
+                value={
+                  formData.dateOfSampleCollection && dayjs(formData.dateOfSampleCollection, "YYYYMMDD").isValid()
+                    ? dayjs(formData.dateOfSampleCollection, "YYYYMMDD").format("DD/MM/YYYY")
+                    : ""
+                }
+                style={styles.input}
+                mode="outlined"
+                editable={false}
+              />
+
+              <DateTimeComponent
+                label="Sample collection start"
+                mode="outlined"
+                style={styles.input}
+                date={rUnloadDateTime}
+                setDate={setRUnloadDateTime}
+                editable={false}
+              />
+
+              <DateTimeComponent
+                label="Sample collection completed"
+                mode="outlined"
+                style={styles.input}
+                date={rakeCompleteDT}
+                setDate={setRakeCompleteDT}
+                editable={false}
+              />
+            </Card.Content>
+          </Card>
+
+          {/* 3. Bags & Wagons */}
+          <Card style={styles.card}>
+            <Card.Title title="Bags & Wagons" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Content>
+              <TextInput
+                label="No of bags Collected"
+                value={`${formData?.noOfBagsCollected}`}
+                onChangeText={text => setFormData({ ...formData, noOfBagsCollected: Number(text) })}
+                style={styles.input}
+                mode="outlined"
+                keyboardType="numeric"
+              />
+
+              {Number(formData?.noOfBagsCollected) > 100 && (
+                <Text style={styles.errorText}>bags less than 100</Text>
+              )}
+
+              {Number(formData?.noOfBagsCollected) < 100 && (
+                <NoOfTwoBoxComponent number={formData?.noOfBagsCollected} boxes={boxes} setBoxes={setBoxes} />
+              )}
+
+              <TextInput
+                label="No of Wagons"
+                value={`${formData?.noOfWagons}`}
+                onChangeText={text => setFormData({ ...formData, noOfWagons: Number(text) })}
+                style={styles.input}
+                mode="outlined"
+                keyboardType="numeric"
+              />
+            </Card.Content>
+          </Card>
+
+          {/* 4. Agencies & Personnel */}
+          <Card style={styles.card}>
+            <Card.Title title="Agencies & Personnel" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Content>
+              <TextInput
+                label="Sampling Agency"
+                value={formData?.samplingAgency}
+                onChangeText={text => setFormData({ ...formData, samplingAgency: text })}
+                style={styles.input}
+                mode="outlined"
+              />
+
+              <TextInput
+                label="Supervisor Agency"
+                value={formData?.supervisor}
+                onChangeText={text => setFormData({ ...formData, supervisor: text })}
+                style={styles.input}
+                mode="outlined"
+              />
+
+              <TextInput
+                label="Samplers"
+                value={formData?.samplers}
+                onChangeText={text => setFormData({ ...formData, samplers: text })}
+                style={styles.input}
+                mode="outlined"
+              />
+
+              <SelectComponentBYFORM
+                field={{ name: "allSampleBagsSealChecked", label: "All Sample Bags Seal Checked?" }}
+                formData={formData}
+                handleChange={handleChange}
+                isVisible={isSampleBagsChecked}
+                setIsVisible={setIsSampleBagsChecked}
+                screenHeight={screenHeight}
+                screenWidth={screenWidht}
+                dataList={[
+                  { key: "1", value: "YES" },
+                  { key: "2", value: "NO" }
+                ]}
+                onOpen={null}
+              />
+
+              <SelectComponentBYFORM
+                field={{ name: "samplingMode", label: "Sampling Mode" }}
+                formData={formData}
+                handleChange={handleChange}
+                isVisible={isSampleMode}
+                setIsVisible={setIsSampleMode}
+                screenHeight={screenHeight}
+                screenWidth={screenWidht}
+                dataList={[
+                  { key: "1", value: "AUTO" },
+                  { key: "2", value: "MANUAL" }
+                ]}
+                onOpen={null}
+              />
+
+              {formData?.samplingMode === "AUTO" && (
+                <SelectComponentBYFORM
+                  field={{ name: "autoSampler", label: "Auto Sampler" }}
+                  formData={formData}
+                  handleChange={handleChange}
+                  isVisible={isAutoSampler}
+                  setIsVisible={setIsIsAutoSampler}
+                  screenHeight={screenHeight}
+                  screenWidth={screenWidht}
+                  dataList={autoSamplers}
+                  onOpen={null}
+                />
+              )}
+            </Card.Content>
+          </Card>
+
+          {/* 5. Conditions & Remarks */}
+          <Card style={styles.card}>
+            <Card.Title title="Conditions & Remarks" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Content>
+              <SelectComponentBYFORM
+                field={{ name: "weatherCondition", label: "Weather Condition" }}
+                formData={formData}
+                handleChange={handleChange}
+                isVisible={isWeather}
+                setIsVisible={setIsWeather}
+                screenHeight={screenHeight}
+                screenWidth={screenWidht}
+                dataList={weatherConditions}
+                onOpen={null}
+              />
+
+              <TextInput
+                label="Remarks"
+                value={`${formData?.remarks}`}
+                onChangeText={text => setFormData({ ...formData, remarks: text })}
+                style={styles.input}
+                mode="outlined"
+              />
+            </Card.Content>
+          </Card>
+
+          <Button mode="contained" onPress={handleSubmit} style={styles.button}>
             Submit
           </Button>
         </ScrollView>
       </TouchableWithoutFeedback>
+
       <AlertMessage
         key={alertMessage + alertVisible}
         visible={alertVisible}
@@ -437,16 +770,32 @@ export default function RakeSampleForm() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    gap: 12,
+    padding: 16,
+    paddingBottom: 20
+  },
+  card: {    
+    borderRadius: 12,
+    elevation: 4,
+    backgroundColor: "#fff",
+    marginBottom: 8
+  },
+  input: {
+    marginBottom: 16,
+    backgroundColor: "#fff"
+  },
+  button: {
+    marginTop: 16,
+    borderRadius: 8,
+    paddingVertical: 2
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 10,
+    marginLeft: 2
   },
   title: {
     marginBottom: 12,
     textAlign: 'center',
-  },
-  input: {
-    marginBottom: 8,
-    backgroundColor: "transparent",
   },
   dropdown: {
     marginBottom: 8,
@@ -456,9 +805,6 @@ const styles = StyleSheet.create({
   dropdownList: {
     zIndex: 1000,
     backgroundColor: 'white',
-  },
-  button: {
-    marginTop: 16,
   },
   label: {
     fontSize: 16,

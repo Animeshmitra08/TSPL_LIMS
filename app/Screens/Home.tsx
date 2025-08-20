@@ -4,7 +4,8 @@ import { SelectComponentBYFORM } from '@/components/SelectComponent';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import React, { useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import axios from 'axios';
 import {
   Dimensions,
   Keyboard,
@@ -20,39 +21,175 @@ import {
 import { SelectList } from 'react-native-dropdown-select-list';
 import {
   Button,
+  Card,
   Text,
   TextInput,
 } from 'react-native-paper';
 import NoOfTwoBoxComponent, { BoxData } from './NoOfTwoBoxComponent';
+import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect } from '@react-navigation/native'; // ✅ added
+import { useAuth } from '@/context/AuthContext';
 
 dayjs.extend(customParseFormat);
+
+type RegNoType = { regno: string };
+
+const biomassDefault = {
+  oP_TYPE: "G",
+  poweR_TYPE: "BIOMASS",
+  tCoalSampling: [],
+  tBioSampling: [],
+  tCoalBioBags: [],
+  tRakeNo: [],
+  tRegNo: [] as RegNoType[],
+};
 
 const HomeScreen = () => {
   const [supervisor, setSupervisor] = useState('');
   const [sampler, setSampler] = useState('');
-  const [customDateTime, setCustomDateTime] = useState<any>();
   const [boxes, setBoxes] = useState<BoxData[]>([]);
 
   const [formData, setFormData] = useState({
     truckNumber: 'Select Truck Number',
     samplingAgency: '',
     supervisorName: '',
-    bagsCollected: '', // change this to array
+    bagsCollected: '',
     sealNumbers: [] as any,
-    // [] as { bagno: number; seal: string }[],
     samplingMode: 'Select Sampling Mode',
-    samplingDateTime: new Date(),
+    samplingDateTime: null as Date | null,
   });
+  const [biomassData, setBiomassData] = useState<typeof biomassDefault>(biomassDefault);
+  const [loadingTrucks, setLoadingTrucks] = useState(false);
 
-  const truckOptions = [
-    { key: '1', value: 'TRK123' },
-    { key: '2', value: 'TRK456' },
-    { key: '3', value: 'TRK789' },
-  ];
+  const baseurl = process.env.EXPO_PUBLIC_BASE_URL;
+
+  const { user } = useAuth();
+
+  const handleOpenTruckDropdown = async () => {
+    if (!biomassData?.tRegNo || biomassData.tRegNo.length === 0) {
+      setLoadingTrucks(true);
+      try {
+        const { data } = await axios.get(
+          `https://tsplindia.info/TSPLSAMPLING/api/Sampling/POWERTYPE/BIOMASS`
+        );
+
+        setBiomassData((prev) => ({
+          ...prev,
+          tCoalSampling: data?.tCoalSampling ?? [],
+          tBioSampling: data?.tBioSampling ?? [],
+          tCoalBioBags: data?.tCoalBioBags ?? [],
+          tRakeNo: data?.tRakeNo ?? [],
+          tRegNo: data?.tRegNo ?? [],
+          ...data,
+        }));
+      } catch (err) {
+        console.error('Failed to fetch truck data', err);
+      } finally {
+        setLoadingTrucks(false);
+      }
+    }
+  };
+
+  const fetchBiomassData = async (truckNo: string) => {
+    try {
+      const res = await axios.get(
+        `https://tsplindia.info/TSPLSAMPLING/api/Sampling/Filter/POWERTYPE/BIOMASS?TruckNo=${truckNo}`
+      );
+
+      const response = res.data;
+
+      if (response?.tBioSampling?.length > 0) {
+        const sampling = response.tBioSampling[0];
+        const bags = response.tCoalBioBags || [];
+
+        setFormData({
+          truckNumber: sampling.trucK_NO,
+          samplingAgency: sampling.samplE_AGENCY || "",
+          supervisorName: sampling.supervisor || "",
+          bagsCollected: String(bags.length || sampling.nO_OF_BAGS_COL || ""),
+          sealNumbers: bags.map((b: any) => ({
+            bagno: b.baG_NO,
+            seal: b.seaL_NO,
+          })),
+          samplingMode: sampling.samplinG_MODE || "Select Sampling Mode",
+          samplingDateTime: dayjs(
+            `${sampling.samplinG_DT}${sampling.samplinG_TM}`,
+            "YYYYMMDDHHmmss"
+          ).toDate(),
+        });
+
+        setSupervisor(sampling.supervisor || "");
+        setSampler(sampling.sampler || "");
+        setBoxes(
+          bags.map((b: any) => ({
+            bagNo: b.baG_NO,
+            seal: b.seaL_NO,
+          }))
+        );
+      } else {
+        // reset form for new entry
+        setFormData({
+          truckNumber: truckNo,
+          samplingAgency: "",
+          supervisorName: "",
+          bagsCollected: "",
+          sealNumbers: [],
+          samplingMode: "Select Sampling Mode",
+          samplingDateTime: null,
+        });
+
+        setSupervisor("");
+        setSampler("");
+        setBoxes([]);
+      }
+    } catch (err) {
+      console.error("Error fetching biomass data:", err);
+      setFormData({
+        truckNumber: truckNo,
+        samplingAgency: "",
+        supervisorName: "",
+        bagsCollected: "",
+        sealNumbers: [],
+        samplingMode: "Select Sampling Mode",
+        samplingDateTime: null,
+      });
+
+      setSupervisor("");
+      setSampler("");
+      setBoxes([]);
+    }
+  };
+
+  const truckOptions = (biomassData?.tRegNo ?? []).map((item, index) => ({
+    key: String(index + 1),
+    value: item.regno,
+  }));
+
+  const handleChange = (field: any, val: any) => {
+    if (field === "truckNumber" && val && val !== "Select Truck Number") {
+      // ✅ reset state before fetching new truck data
+      setFormData({
+        truckNumber: val,
+        samplingAgency: "",
+        supervisorName: "",
+        bagsCollected: "",
+        sealNumbers: [],
+        samplingMode: "Select Sampling Mode",
+        samplingDateTime: null,
+      });
+      setSupervisor("");
+      setSampler("");
+      setBoxes([]);
+
+      fetchBiomassData(val);
+    } else {
+      setFormData({ ...formData, [field]: val });
+    }
+  };
 
   const samplingModes = [
-    { key: '1', value: 'Manual' },
-    { key: '2', value: 'Automatic' },
+    { key: '1', value: 'AUTO' },
+    { key: '2', value: 'MANUAL' },
   ];
 
   const updateSupervisorName = (sup: string, sam: string) => {
@@ -60,127 +197,156 @@ const HomeScreen = () => {
     setFormData((prev) => ({ ...prev, supervisorName: fullName }));
   };
 
-  const handleBagsChange = (text: string) => {
-    const num = parseInt(text);
-    if (isNaN(num) || num <= 0) {
-      setFormData((prev) => ({
-        ...prev,
-        bagsCollected: text,
-        sealNumbers: [],
-      }));
-      return;
-    }
-
-    const seals = Array.from({ length: num }, (_, i) => ({
-      bagno: i + 1,
-      seal: '',
-    }));
-
-    setFormData((prev) => ({
-      ...prev,
-      bagsCollected: text,
-      sealNumbers: seals,
-    }));
-  };
-
-  const updateSealAtIndex = (value: string, index: number) => {
-    const updated = [...formData.sealNumbers];
-    if (updated[index]) {
-      updated[index].seal = value;
-      setFormData((prev) => ({
-        ...prev,
-        sealNumbers: updated,
-      }));
-    }
-  };
-
   // messages
   const [alertVisible, setAlertVisible] = useState<boolean>(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'info' | 'error' | 'success'>('info');
+
   // height and width calculate
   const height = useWindowDimensions().height;
   const width = useWindowDimensions().width;
   const isLandScape = width > height;
-  // Custom handle Close alert visible function
+
   function handleVisible() {
     setAlertVisible(false);
   }
 
-  const handleSubmit = () => {
-    if (Platform.OS === "android") {
-      if (!customDateTime) {
-        return;
-      }
-      const cleanedBoxes = boxes.map(({ bagNo, seal }) => ({ bagNo, seal }));
-      // setFormData({
-      //   ...formData,
-      //   sealNumbers : cleanedBoxes
-      // })
-      setFormData({ ...formData, samplingDateTime: customDateTime, sealNumbers: cleanedBoxes });
-      // validate
-      if (!formValidaty(formData)) {
-        setAlertMessage("Please enter all fields");
-        setAlertType('error')
-        setAlertVisible(true)
-        setTimeout(() => {
-          setAlertVisible(false)
-        })
-        return;
-      } else {
-        setAlertMessage('Rake Sampling Report submitted');
-        setAlertType('success')
-        setAlertVisible(true)
-        setTimeout(() => {
-          setAlertVisible(false)
-        })
-      }
+  function formatToSAPDateTime(date: Date) {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+    return {
+      planT_ARV_DATE: `${year}${month}${day}`, 
+      planT_ARV_TIME: `${hours}${minutes}${seconds}`
+    };
+  };
 
-      console.log(JSON.stringify(formData), "formdata");
+  const getSAPDateTime = (date?: Date) => {
+    if (!date) return { date: "", time: "" };
+    const { planT_ARV_DATE, planT_ARV_TIME } = formatToSAPDateTime(date);
+    return { date: planT_ARV_DATE, time: planT_ARV_TIME };
+  };
+
+  const SapSampleDateTime = getSAPDateTime(formData.samplingDateTime ?? undefined);
+
+  useFocusEffect(
+    useCallback(() => {
       setFormData({
-        truckNumber: 'Select Truck Number',
-        samplingAgency: '',
-        supervisorName: '',
-        bagsCollected: '', // change this to array
-        sealNumbers: [] as any,
-        // [] as { bagno: number; seal: string }[],
-        samplingMode: 'Select Sampling Mode',
-        samplingDateTime: new Date(),
+        truckNumber: "Select Truck Number",
+        samplingAgency: "",
+        supervisorName: "",
+        bagsCollected: "",
+        sealNumbers: [],
+        samplingMode: "Select Sampling Mode",
+        samplingDateTime: null,
       });
-      setBoxes([])
-      setSampler("")
-      setSupervisor("")
-      setCustomDateTime(undefined)
+      setBoxes([]);
+      setSampler("");
+      setSupervisor("");
+      setBiomassData(biomassDefault);
+    }, [])
+  );
+
+  const handleSubmit = async () => {
+    if (!formData.samplingDateTime) return;
+
+    const cleanedBoxes = boxes.map(({ bagNo, seal }) => ({
+      zmode: "BIOMASS",
+      rakE_OR_TRUCK_NO: formData.truckNumber,
+      baG_NO: String(bagNo),
+      seaL_NO: seal,
+      entrY_BY: "APP_USER"
+    }));
+
+    if (!formValidaty(formData)) {
+      setAlertMessage("Please enter all fields");
+      setAlertType("error");
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+      return;
+    }
+
+    const payload = {
+      t_COAL_SAMPLING: [],
+      t_BIO_SAMPLING: [
+        {
+          slno: "1",
+          trucK_NO: formData.truckNumber,
+          samplinG_DT: SapSampleDateTime.date,
+          samplinG_TM: SapSampleDateTime.time,
+          totaL_TRUCKS: "1",
+          samplE_AGENCY: formData.samplingAgency,
+          supervisor,
+          sampler,
+          nO_OF_BAGS_COL: formData.bagsCollected,
+          samplinG_MODE: formData.samplingMode,
+          createD_BY: user?.fullname || "User",
+        }
+      ],
+      t_CAOL_BIO_BAGS_TBL: cleanedBoxes,
+      t_RAKE_NO: [],
+      t_REGNO: [],
+      t_DROPDOWN_DATA: []
+    };
+
+    try {
+      const { data } = await axios.post(
+        "https://tsplindia.info/TSPLSAMPLING/api/Sampling/PTYPE/BIOMASS",
+        payload,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("Submission success:", data);
+      setAlertMessage("Rake Sampling Report submitted");
+      setAlertType("success");
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+
+      // Reset form state
+      setFormData({
+        truckNumber: "Select Truck Number",
+        samplingAgency: "",
+        supervisorName: "",
+        bagsCollected: "",
+        sealNumbers: [],
+        samplingMode: "Select Sampling Mode",
+        samplingDateTime: null,
+      });
+      setBoxes([]);
+      setSampler("");
+      setSupervisor("");
+    } catch (err) {
+      console.error("Error submitting data:", err);
+      setAlertMessage("Failed to submit data");
+      setAlertType("error");
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
     }
   };
+
   const [isTruckVisible, setIsTruckVisible] = useState(false);
   const [isSamplingModeVisible, setIsSamplingModeVisible] = useState(false);
 
   const screenHeight = Dimensions.get("window").height;
   const screenWidht = Dimensions.get("window").width;
 
-  const bagsCollected = (boxs: any) => {
-    setBoxes(boxs);
-    console.log(boxes);
-
-  }
-
-  const handleChange = (field: any, val: any) => {
-    setFormData({ ...formData, [field]: val })
-  }
-
-
   return (
-    <KeyboardAvoidingView behavior='padding' keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100} >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Text variant="titleLarge" style={styles.title}>Sampling Form</Text>
-          {/* disabled when api integert */}
+<KeyboardAvoidingView
+  behavior="padding"
+  keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}
+>
+  <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Card style={styles.card}>
+        <Card.Content>
           <SelectComponentBYFORM
             field={{
               label: "Select Truck Number",
               name: "truckNumber",
-              options: truckOptions
             }}
             formData={formData}
             handleChange={handleChange}
@@ -188,12 +354,32 @@ const HomeScreen = () => {
             setIsVisible={setIsTruckVisible}
             screenHeight={screenHeight}
             screenWidth={screenWidht}
+            dataList={truckOptions}
+            onOpen={() => {
+              setIsTruckVisible(true);
+              handleOpenTruckDropdown();
+            }}
+          />
+        </Card.Content>
+      </Card>
+      <Card style={styles.card}>
+        <Card.Content>
+          <DateTimeComponent
+            label="Sampling Date & Time"
+            mode="outlined"
+            style={styles.input}
+            date={formData.samplingDateTime}
+            setDate={(date: Date) =>
+              setFormData((prev) => ({ ...prev, samplingDateTime: date }))
+            }
           />
 
           <TextInput
             label="Sampling Agency"
             value={formData.samplingAgency}
-            onChangeText={(text) => setFormData({ ...formData, samplingAgency: text })}
+            onChangeText={(text) =>
+              setFormData({ ...formData, samplingAgency: text })
+            }
             style={styles.input}
             mode="outlined"
           />
@@ -220,99 +406,98 @@ const HomeScreen = () => {
             mode="outlined"
           />
 
-          {/* <TextInput
-            label="Number of Bags Collected"
-            value={formData.bagsCollected}
-            onChangeText={handleBagsChange}
-            keyboardType="numeric"
-            style={styles.input}
-            mode="outlined"
-            placeholderTextColor={"#000"}
-          /> */}
           <TextInput
             label="Number of Bags Collected"
             value={formData.bagsCollected}
             onChangeText={(text: string) => {
-              setFormData({ ...formData, bagsCollected: text })
+              setFormData({ ...formData, bagsCollected: text });
             }}
-            keyboardType='numeric'
+            keyboardType="numeric"
             style={styles.input}
-            mode='outlined'
+            mode="outlined"
             placeholderTextColor={"#000"}
           />
-          {
-                        Number(formData?.bagsCollected) > 100 && <Text  style={{
-              color : "red",
-              marginBottom : 10,
-              marginLeft : 2 
-            }}>bags less than 100</Text>}
-          {
-            Number(formData?.bagsCollected) < 100 &&  <NoOfTwoBoxComponent boxes={boxes} setBoxes={setBoxes} number={Number(formData?.bagsCollected) || 0} />
-          }
-          {/* {formData.sealNumbers.map((sealObj, index) => {
-            console.log(sealObj);
-            
-            return(
-            <TextInput
-              key={index}
-              label={`Seal #${sealObj.bagno}`}
-              value={sealObj.seal}
-              onChangeText={(text) => updateSealAtIndex(text, index)}
-              style={styles.input}
-              mode="outlined"
-            />
-          )})} */}
+
+          {Number(formData?.bagsCollected) > 100 && (
+            <Text
+              style={{
+                color: "red",
+                marginBottom: 10,
+                marginLeft: 2,
+              }}
+            >
+              Bags must be less than 100
+            </Text>
+          )}
+
+          <NoOfTwoBoxComponent
+            boxes={boxes}
+            setBoxes={(updated: BoxData[]) => {
+              setBoxes(updated);
+              setFormData((prev) => ({ ...prev, sealNumbers: updated }));
+            }}
+            number={Number(formData?.bagsCollected) || 0}
+          />
+
           <SelectComponentBYFORM
             field={{
               label: "Select Sampling Mode",
               name: "samplingMode",
-              options: samplingModes
             }}
             formData={formData}
             handleChange={handleChange}
             isVisible={isSamplingModeVisible}
             setIsVisible={setIsSamplingModeVisible}
+            dataList={samplingModes}
             screenHeight={screenHeight}
             screenWidth={screenWidht}
           />
-          <DateTimeComponent
-            label={"Sampling Date & Time"}
-            mode="outlined"
-            style={styles.input}
-            date={customDateTime}
-            setDate={setCustomDateTime}
-          />
+
           <Button mode="contained" onPress={handleSubmit} style={styles.button}>
             Submit
           </Button>
-        </ScrollView>
-      </TouchableWithoutFeedback>
-      <AlertMessage
-        key={alertMessage + alertVisible}
-        visible={alertVisible}
-        message={alertMessage}
-        type={alertType}
-        onDismiss={() => setAlertVisible(false)}
-        isLandScape={isLandScape}
-        handleVisible={handleVisible}
-      />
-    </KeyboardAvoidingView>
+        </Card.Content>
+      </Card>
+    </ScrollView>
+  </TouchableWithoutFeedback>
+
+  <AlertMessage
+    key={alertMessage + alertVisible}
+    visible={alertVisible}
+    message={alertMessage}
+    type={alertType}
+    onDismiss={() => setAlertVisible(false)}
+    isLandScape={isLandScape}
+    handleVisible={handleVisible}
+  />
+</KeyboardAvoidingView>
 
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    gap: 12,
+    padding: 16,
+  },
+  card: {
+    borderRadius: 12,
+    elevation: 4,
+    backgroundColor: "#fff",
+    marginBottom: 16,
   },
   title: {
-    marginBottom: 12,
-    textAlign: 'center',
+    marginBottom: 16,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   input: {
-    marginBottom: 8,
-    backgroundColor: "transparent",
+    marginBottom: 12,
+    backgroundColor: "#fff",
+  },
+  button: {
+    marginTop: 16,
+    borderRadius: 8,
+    paddingVertical: 2,
   },
   dropdown: {
     marginBottom: 8,
@@ -322,9 +507,6 @@ const styles = StyleSheet.create({
   dropdownList: {
     zIndex: 1000,
     backgroundColor: 'white',
-  },
-  button: {
-    marginTop: 16,
   },
   label: {
     fontSize: 16,
@@ -395,10 +577,10 @@ export const SelectComponent = ({
             <SelectList
               setSelected={(val: string) => {
                 handleChange(field.name, val);
-                setIsVisible(true);
+                setIsVisible(false);
               }}
               onSelect={() => {
-                setIsVisible(true);
+                setIsVisible(false);
               }}
               data={field.options}
               save="value"
