@@ -57,7 +57,7 @@ export default function NoOfTwoBoxComponent({
     }
 
     setBoxes(updated);
-  }, [number, boxes.length, setBoxes]);
+  }, [number, boxes.length]);
 
   const handleChange = (
     index: number,

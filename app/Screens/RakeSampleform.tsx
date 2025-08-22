@@ -2,12 +2,14 @@ import AlertMessage from "@/components/Cards/AlertMessage";
 import DateTimeComponent from "@/components/DateTimeSelect";
 import { SelectComponentBYFORM } from "@/components/SelectComponent";
 import { useCallback, useEffect, useState } from "react";
-import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, useWindowDimensions } from "react-native";
+import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, useWindowDimensions, View } from "react-native";
 import { Button, Card, Text, TextInput } from "react-native-paper";
 import NoOfTwoBoxComponent, { BoxData } from "./NoOfTwoBoxComponent";
 import axios from 'axios';
 import dayjs from "dayjs";
 import { useFocusEffect } from "@react-navigation/native";
+import { useAuth } from "@/context/AuthContext";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 const initialFormData = {
   clientName: "TALWANDI SABO POWER LIMITED, TALWANDI",
@@ -35,6 +37,8 @@ const initialFormData = {
 
 export default function RakeSampleForm() {
   
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState(initialFormData);
   // form data change function
   const handleChange = (field: any, val: any) => {
@@ -64,6 +68,7 @@ export default function RakeSampleForm() {
   const [autoSamplers, setAutoSamplers] = useState<{ key: string; value: string }[]>([]);
   const [weatherConditions, setWeatherConditions] = useState<{ key: string; value: string }[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
 
   function parseRakeDateTime(dateStr: string, timeStr: string): Date | undefined {
     if (!dateStr || !timeStr || dateStr === "00000000") return undefined;
@@ -244,6 +249,24 @@ export default function RakeSampleForm() {
     }
   };
 
+  const isFormEmpty =
+    JSON.stringify(formData) === JSON.stringify(initialFormData) &&
+    boxes.length === 0 &&
+    rpDateTime === undefined &&
+    rUnloadDateTime === undefined &&
+    rakeCompleteDT === undefined;
+
+  // console.log(formData, boxes, rpDateTime, rUnloadDateTime, rakeCompleteDT);
+  
+
+
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setBoxes([]);
+    setRpDateTime(undefined);
+    setRUnloadDateTime(undefined);
+    setRakeCompleteDT(undefined);
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -309,10 +332,12 @@ export default function RakeSampleForm() {
         setRUnloadDateTime(commence);
         setRakeCompleteDT(complete);
 
-        setAlertMessage("Existing data loaded for this Rake");
+        setAlertMessage("Existing data loaded for this Coal Sampling");
         setAlertType("info");
         setAlertVisible(true);
         setTimeout(() => setAlertVisible(false), 3000);
+
+        setIsUpdateMode(true);
       } else {
         setFormData((prev) => ({
           ...prev,
@@ -334,6 +359,7 @@ export default function RakeSampleForm() {
         }));
         setBoxes([]);
 
+        setIsUpdateMode(false);
         setAlertMessage("No existing data. Enter new record.");
         setAlertType("info");
         setAlertVisible(true);
@@ -363,10 +389,11 @@ export default function RakeSampleForm() {
       setRUnloadDateTime(undefined);
       setRakeCompleteDT(undefined);
       
+      setIsUpdateMode(false)
       setAlertMessage("No existing data. Enter new record.");
       setAlertType("info");
-      // setAlertVisible(true);
-      // setTimeout(() => setAlertVisible(false), 3000);
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 3000);
     }
   };
 
@@ -390,7 +417,7 @@ export default function RakeSampleForm() {
         rakE_OR_TRUCK_NO: formData.rakeNo,
         baG_NO: String(bagNo),
         seaL_NO: seal,
-        entrY_BY: "APP_USER"
+        entrY_BY: user?.fullname
       }));
 
       if (!formValidaty(formData)) {
@@ -443,7 +470,7 @@ export default function RakeSampleForm() {
             autO_SAMPLER: formData.autoSampler,
             weatheR_COND: formData.weatherCondition,
             remarks: formData.remarks,
-            createD_BY: "APP_USER"
+            createD_BY: user?.fullname
           }
         ],
         t_CAOL_BIO_BAGS_TBL: cleanedBoxes,
@@ -464,13 +491,13 @@ export default function RakeSampleForm() {
 
       console.log("Payload:", JSON.stringify(payload, null, 2));
 
-      const response = await axios.post(
-        "https://tsplindia.info/TSPLSAMPLING/api/Sampling/PTYPE/COAL",
-        payload,
-        { headers: { "Content-Type": "application/json" } }
-      );
+      // const response = await axios.post(
+      //   "https://tsplindia.info/TSPLSAMPLING/api/Sampling/PTYPE/COAL",
+      //   payload,
+      //   { headers: { "Content-Type": "application/json" } }
+      // );
 
-      console.log("API Response:", response.data);
+      // console.log("API Response:", response.data);
 
       setAlertMessage("Data submitted successfully");
       setAlertType("success");
@@ -486,7 +513,9 @@ export default function RakeSampleForm() {
   };
 
   return (
-   <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}>
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.container}>
 
@@ -545,6 +574,7 @@ export default function RakeSampleForm() {
                 onOpen={null}
               />
             </Card.Content>
+            <View style={styles.cardBottom} />
           </Card>
 
           {/* 2. Dates & Sampling Timeline */}
@@ -615,6 +645,7 @@ export default function RakeSampleForm() {
                 editable={false}
               />
             </Card.Content>
+            <View style={styles.cardBottom} />
           </Card>
 
           {/* 3. Bags & Wagons */}
@@ -647,6 +678,7 @@ export default function RakeSampleForm() {
                 keyboardType="numeric"
               />
             </Card.Content>
+            <View style={styles.cardBottom} />
           </Card>
 
           {/* 4. Agencies & Personnel */}
@@ -662,7 +694,7 @@ export default function RakeSampleForm() {
               />
 
               <TextInput
-                label="Supervisor Agency"
+                label="Supervisor"
                 value={formData?.supervisor}
                 onChangeText={text => setFormData({ ...formData, supervisor: text })}
                 style={styles.input}
@@ -721,6 +753,7 @@ export default function RakeSampleForm() {
                 />
               )}
             </Card.Content>
+            <View style={styles.cardBottom} />
           </Card>
 
           {/* 5. Conditions & Remarks */}
@@ -744,13 +777,25 @@ export default function RakeSampleForm() {
                 value={`${formData?.remarks}`}
                 onChangeText={text => setFormData({ ...formData, remarks: text })}
                 style={styles.input}
+                multiline
+                numberOfLines={4}
                 mode="outlined"
               />
             </Card.Content>
+            <View style={styles.cardBottom} />
           </Card>
 
           <Button mode="contained" onPress={handleSubmit} style={styles.button}>
-            Submit
+            {isUpdateMode ? "Update" : "Submit"}
+          </Button>
+
+          <Button
+            mode="outlined"
+            onPress={resetForm}
+            disabled={isFormEmpty}
+            style={[styles.button, { marginTop: 8 }]}
+          >
+            Clear
           </Button>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -764,20 +809,35 @@ export default function RakeSampleForm() {
         isLandScape={isLandScape}
         handleVisible={handleVisible}
       />
-    </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingBottom: 20
+    // padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    flexGrow: 1,
   },
   card: {    
     borderRadius: 12,
     elevation: 4,
     backgroundColor: "#fff",
-    marginBottom: 8
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    overflow: "hidden",
+  },
+  cardBottom: {
+    height: 4,
+    backgroundColor: "#193b86ff",
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   input: {
     marginBottom: 16,

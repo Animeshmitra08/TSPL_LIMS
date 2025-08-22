@@ -66,7 +66,7 @@ export function SelectComponentBYFORM({
               >
                 <Button
                   style={{ width: screenWidth * 0.95 }}
-                  mode="contained-tonal"
+                  mode="contained"
                   onPress={() => setIsVisible(false)}
                 >
                   Close
@@ -111,7 +111,7 @@ export function SelectComponentBYFORM({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   selectLabel: {
     borderWidth: 1,

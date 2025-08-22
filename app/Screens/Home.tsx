@@ -29,6 +29,7 @@ import NoOfTwoBoxComponent, { BoxData } from './NoOfTwoBoxComponent';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native'; // ✅ added
 import { useAuth } from '@/context/AuthContext';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 dayjs.extend(customParseFormat);
 
@@ -60,6 +61,7 @@ const HomeScreen = () => {
   });
   const [biomassData, setBiomassData] = useState<typeof biomassDefault>(biomassDefault);
   const [loadingTrucks, setLoadingTrucks] = useState(false);
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
 
   const baseurl = process.env.EXPO_PUBLIC_BASE_URL;
 
@@ -70,7 +72,7 @@ const HomeScreen = () => {
       setLoadingTrucks(true);
       try {
         const { data } = await axios.get(
-          `https://tsplindia.info/TSPLSAMPLING/api/Sampling/POWERTYPE/BIOMASS`
+          `${baseurl}/Sampling/POWERTYPE/BIOMASS`
         );
 
         setBiomassData((prev) => ({
@@ -93,7 +95,7 @@ const HomeScreen = () => {
   const fetchBiomassData = async (truckNo: string) => {
     try {
       const res = await axios.get(
-        `https://tsplindia.info/TSPLSAMPLING/api/Sampling/Filter/POWERTYPE/BIOMASS?TruckNo=${truckNo}`
+        `${baseurl}/Sampling/Filter/POWERTYPE/BIOMASS?TruckNo=${truckNo}`
       );
 
       const response = res.data;
@@ -126,6 +128,13 @@ const HomeScreen = () => {
             seal: b.seaL_NO,
           }))
         );
+
+        setAlertMessage("Existing data loaded for this Coal Sampling");
+        setAlertType("info");
+        setAlertVisible(true);
+        setTimeout(() => setAlertVisible(false), 3000);
+        
+        setIsUpdateMode(true);
       } else {
         // reset form for new entry
         setFormData({
@@ -141,6 +150,7 @@ const HomeScreen = () => {
         setSupervisor("");
         setSampler("");
         setBoxes([]);
+        setIsUpdateMode(false);
       }
     } catch (err) {
       console.error("Error fetching biomass data:", err);
@@ -157,6 +167,7 @@ const HomeScreen = () => {
       setSupervisor("");
       setSampler("");
       setBoxes([]);
+      setIsUpdateMode(false);
     }
   };
 
@@ -251,6 +262,30 @@ const HomeScreen = () => {
     }, [])
   );
 
+  const isFormEmpty =
+    JSON.stringify(biomassData) === JSON.stringify(biomassDefault) &&
+    boxes.length === 0 &&
+    supervisor === "" &&
+    sampler === "";
+
+  const resetForm = () => {
+    setFormData({
+      truckNumber: "Select Truck Number",
+      samplingAgency: "",
+      supervisorName: "",
+      bagsCollected: "",
+      sealNumbers: [],
+      samplingMode: "Select Sampling Mode",
+      samplingDateTime: null,
+    });
+    setBoxes([]);
+    setSampler("");
+    setSupervisor("");
+    setBiomassData(biomassDefault);
+    setIsUpdateMode(false);
+  };
+
+
   const handleSubmit = async () => {
     if (!formData.samplingDateTime) return;
 
@@ -259,7 +294,7 @@ const HomeScreen = () => {
       rakE_OR_TRUCK_NO: formData.truckNumber,
       baG_NO: String(bagNo),
       seaL_NO: seal,
-      entrY_BY: "APP_USER"
+      entrY_BY: user?.fullname || "User"
     }));
 
     if (!formValidaty(formData)) {
@@ -295,12 +330,14 @@ const HomeScreen = () => {
 
     try {
       const { data } = await axios.post(
-        "https://tsplindia.info/TSPLSAMPLING/api/Sampling/PTYPE/BIOMASS",
+        `${baseurl}/Sampling/PTYPE/BIOMASS`,
         payload,
         { headers: { "Content-Type": "application/json" } }
       );
 
       console.log("Submission success:", data);
+      console.log("Payload to be submitted:", payload);
+      
       setAlertMessage("Rake Sampling Report submitted");
       setAlertType("success");
       setAlertVisible(true);
@@ -335,155 +372,188 @@ const HomeScreen = () => {
   const screenWidht = Dimensions.get("window").width;
 
   return (
-<KeyboardAvoidingView
-  behavior="padding"
-  keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}
->
-  <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <ScrollView contentContainerStyle={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content>
-          <SelectComponentBYFORM
-            field={{
-              label: "Select Truck Number",
-              name: "truckNumber",
-            }}
-            formData={formData}
-            handleChange={handleChange}
-            isVisible={isTruckVisible}
-            setIsVisible={setIsTruckVisible}
-            screenHeight={screenHeight}
-            screenWidth={screenWidht}
-            dataList={truckOptions}
-            onOpen={() => {
-              setIsTruckVisible(true);
-              handleOpenTruckDropdown();
-            }}
+    <>
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }}>        
+        <KeyboardAvoidingView
+          behavior="padding"
+          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}
+          >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView contentContainerStyle={styles.container}>
+              <Card style={styles.card}>
+                <Card.Content>
+                  <SelectComponentBYFORM
+                    field={{
+                      label: "Select Truck Number",
+                      name: "truckNumber",
+                    }}
+                    formData={formData}
+                    handleChange={handleChange}
+                    isVisible={isTruckVisible}
+                    setIsVisible={setIsTruckVisible}
+                    screenHeight={screenHeight}
+                    screenWidth={screenWidht}
+                    dataList={truckOptions}
+                    onOpen={() => {
+                      setIsTruckVisible(true);
+                      handleOpenTruckDropdown();
+                    }}
+                  />
+                </Card.Content>    
+                {/* <View style={styles.cardBottom} /> */}
+              </Card>++
+
+
+              <Card style={styles.card}>
+                <Card.Content>
+                  <DateTimeComponent
+                    label="Sampling Date & Time"
+                    mode="outlined"
+                    style={styles.input}
+                    date={formData.samplingDateTime}
+                    setDate={(date: Date) =>
+                      setFormData((prev) => ({ ...prev, samplingDateTime: date }))
+                    }
+                  />
+
+                  <TextInput
+                    label="Sampling Agency"
+                    value={formData.samplingAgency}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, samplingAgency: text })
+                    }
+                    style={styles.input}
+                    mode="outlined"
+                  />
+
+                  <TextInput
+                    label="Supervisor Name"
+                    value={supervisor}
+                    onChangeText={(text) => {
+                      setSupervisor(text);
+                      updateSupervisorName(text, sampler);
+                    }}
+                    style={styles.input}
+                    mode="outlined"
+                  />
+
+                  <TextInput
+                    label="Sampler Name"
+                    value={sampler}
+                    onChangeText={(text) => {
+                      setSampler(text);
+                      updateSupervisorName(supervisor, text);
+                    }}
+                    style={styles.input}
+                    mode="outlined"
+                  />
+
+                  <TextInput
+                    label="Number of Bags Collected"
+                    value={formData.bagsCollected}
+                    onChangeText={(text: string) => {
+                      setFormData({ ...formData, bagsCollected: text });
+                    }}
+                    keyboardType="numeric"
+                    style={styles.input}
+                    mode="outlined"
+                    placeholderTextColor={"#000"}
+                  />
+
+                  {Number(formData?.bagsCollected) > 100 && (
+                    <Text
+                      style={{
+                        color: "red",
+                        marginBottom: 10,
+                        marginLeft: 2,
+                      }}
+                    >
+                      Bags must be less than 100
+                    </Text>
+                  )}
+
+                  <NoOfTwoBoxComponent
+                    boxes={boxes}
+                    setBoxes={(updated: BoxData[]) => {
+                      setBoxes(updated);
+                      setFormData((prev) => ({ ...prev, sealNumbers: updated }));
+                    }}
+                    number={Number(formData?.bagsCollected) || 0}
+                  />
+
+                  <SelectComponentBYFORM
+                    field={{
+                      label: "Select Sampling Mode",
+                      name: "samplingMode",
+                    }}
+                    formData={formData}
+                    handleChange={handleChange}
+                    isVisible={isSamplingModeVisible}
+                    setIsVisible={setIsSamplingModeVisible}
+                    dataList={samplingModes}
+                    screenHeight={screenHeight}
+                    screenWidth={screenWidht}
+                  />
+
+                  <Button mode="contained" onPress={handleSubmit} style={styles.button}>
+                    {isUpdateMode ? "Update" : "Submit"}
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    onPress={resetForm}
+                    disabled={isFormEmpty}
+                    style={[styles.button, { marginTop: 8 }]}
+                  >
+                    Clear
+                  </Button>
+
+                </Card.Content>    
+                {/* <View style={styles.cardBottom} /> */}
+              </Card>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+
+          <AlertMessage
+            key={alertMessage + alertVisible}
+            visible={alertVisible}
+            message={alertMessage}
+            type={alertType}
+            onDismiss={() => setAlertVisible(false)}
+            isLandScape={isLandScape}
+            handleVisible={handleVisible}
           />
-        </Card.Content>
-      </Card>
-      <Card style={styles.card}>
-        <Card.Content>
-          <DateTimeComponent
-            label="Sampling Date & Time"
-            mode="outlined"
-            style={styles.input}
-            date={formData.samplingDateTime}
-            setDate={(date: Date) =>
-              setFormData((prev) => ({ ...prev, samplingDateTime: date }))
-            }
-          />
-
-          <TextInput
-            label="Sampling Agency"
-            value={formData.samplingAgency}
-            onChangeText={(text) =>
-              setFormData({ ...formData, samplingAgency: text })
-            }
-            style={styles.input}
-            mode="outlined"
-          />
-
-          <TextInput
-            label="Supervisor Name"
-            value={supervisor}
-            onChangeText={(text) => {
-              setSupervisor(text);
-              updateSupervisorName(text, sampler);
-            }}
-            style={styles.input}
-            mode="outlined"
-          />
-
-          <TextInput
-            label="Sampler Name"
-            value={sampler}
-            onChangeText={(text) => {
-              setSampler(text);
-              updateSupervisorName(supervisor, text);
-            }}
-            style={styles.input}
-            mode="outlined"
-          />
-
-          <TextInput
-            label="Number of Bags Collected"
-            value={formData.bagsCollected}
-            onChangeText={(text: string) => {
-              setFormData({ ...formData, bagsCollected: text });
-            }}
-            keyboardType="numeric"
-            style={styles.input}
-            mode="outlined"
-            placeholderTextColor={"#000"}
-          />
-
-          {Number(formData?.bagsCollected) > 100 && (
-            <Text
-              style={{
-                color: "red",
-                marginBottom: 10,
-                marginLeft: 2,
-              }}
-            >
-              Bags must be less than 100
-            </Text>
-          )}
-
-          <NoOfTwoBoxComponent
-            boxes={boxes}
-            setBoxes={(updated: BoxData[]) => {
-              setBoxes(updated);
-              setFormData((prev) => ({ ...prev, sealNumbers: updated }));
-            }}
-            number={Number(formData?.bagsCollected) || 0}
-          />
-
-          <SelectComponentBYFORM
-            field={{
-              label: "Select Sampling Mode",
-              name: "samplingMode",
-            }}
-            formData={formData}
-            handleChange={handleChange}
-            isVisible={isSamplingModeVisible}
-            setIsVisible={setIsSamplingModeVisible}
-            dataList={samplingModes}
-            screenHeight={screenHeight}
-            screenWidth={screenWidht}
-          />
-
-          <Button mode="contained" onPress={handleSubmit} style={styles.button}>
-            Submit
-          </Button>
-        </Card.Content>
-      </Card>
-    </ScrollView>
-  </TouchableWithoutFeedback>
-
-  <AlertMessage
-    key={alertMessage + alertVisible}
-    visible={alertVisible}
-    message={alertMessage}
-    type={alertType}
-    onDismiss={() => setAlertVisible(false)}
-    isLandScape={isLandScape}
-    handleVisible={handleVisible}
-  />
-</KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </SafeAreaProvider>
+    </>
 
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    paddingTop: 16,
+    flexGrow: 1,
   },
   card: {
     borderRadius: 12,
     elevation: 4,
     backgroundColor: "#fff",
     marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    overflow: "hidden",
+  },
+  cardBottom: {
+    height: 4,
+    backgroundColor: "#eb6a2eff",
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   title: {
     marginBottom: 16,
