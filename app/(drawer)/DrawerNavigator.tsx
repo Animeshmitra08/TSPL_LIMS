@@ -1,6 +1,6 @@
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import React from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, useColorScheme, View } from 'react-native';
 import { Avatar, Button, Divider, Text } from 'react-native-paper';
 import HomeScreen from '../Screens/Home';
 import RakeSampleForm from '../Screens/RakeSampleform';
@@ -24,13 +24,16 @@ export type DrawerParamList = {
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
 export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
+
+  let colorScheme = useColorScheme();
+  
   return (
     <Drawer.Navigator
       screenOptions={{
         headerShown: true,
         drawerHideStatusBarOnOpen: true,
         drawerStyle: {
-          backgroundColor: "#fff",
+          backgroundColor: colorScheme ==="dark" ? "#292828" : "#fff",
           borderTopRightRadius: 20,
           borderBottomRightRadius: 20,
           overflow: "hidden",
@@ -49,7 +52,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           ),
           headerBackground: () => (
             <LinearGradient
-              colors={["#4a90e2", "#357ABD"]}
+              colors={["#276dbdff", "#193b86ff"]}
               style={{ flex: 1 }}
             />
           ),
@@ -118,6 +121,7 @@ async function handleLogout(onLogout: () => Promise<void>) {
 function CustomDrawer(props: any) {
 
   const { user, logout } = useAuth();
+  let colorScheme = useColorScheme();
 
   return (
     <DrawerContentScrollView {...props}>
@@ -125,8 +129,8 @@ function CustomDrawer(props: any) {
       style={styles.header}
       >
         <Avatar.Icon icon="account" size={48} style={{ backgroundColor: "blue" }} />
-        <Text style={styles.username}>Welcome</Text>
-        <Text style={styles.username}>{user?.fullname}</Text>
+        <Text style={[styles.username, {color: colorScheme === "dark" ? "#fff" : "#000"}]}>Welcome</Text>
+        <Text style={[styles.username, {color: colorScheme === "dark" ? "#fff" : "#000"}]}>{user?.fullname}</Text>
       </View>
       <Divider style={{ marginVertical: 8 }} />
       <DrawerItemList  {...props} />
@@ -134,10 +138,11 @@ function CustomDrawer(props: any) {
       <Button
         icon="logout"
         mode="outlined"
+        labelStyle={{ color: colorScheme === "dark" ? "#fff" : "#000" }}
         onPress={async () => {
           await handleLogout(logout)
         }}
-        style={styles.logout}
+        style={[styles.logout, {borderColor: colorScheme === "dark" ? "#fff" : "#000"}]}
       >
         Logout
       </Button>

@@ -1,15 +1,20 @@
 import React from "react";
 import { View, StyleSheet, Image } from "react-native";
-import { Button, Card, Text } from "react-native-paper";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 import { DrawerScreenProps } from "@react-navigation/drawer";
 import { DrawerParamList } from "../(drawer)/DrawerNavigator";
 import { StatusBar } from "expo-status-bar";
+import { ScrollView } from "react-native-gesture-handler";
 
 type Props = DrawerScreenProps<DrawerParamList, "Home">;
 
 const LandingScreen = ({ navigation }: Props) => {
+
+  const theme = useTheme();
   return (
     <>
+    <ScrollView style={{ flex: 1}} contentContainerStyle={{ flexGrow: 1 }} >
+
     <View style={styles.container}>
       {/* Logo */}
       <View style={styles.logoContainer}>
@@ -21,7 +26,7 @@ const LandingScreen = ({ navigation }: Props) => {
       </View>
 
       {/* Title */}
-      <Text style={styles.title}>Welcome to TSPL LIMS</Text>
+      <Text style={[styles.title]}>Welcome to TSPL LIMS</Text>
 
       {/* Coal Sampling */}
       <Card style={styles.card} mode="elevated">
@@ -56,6 +61,7 @@ const LandingScreen = ({ navigation }: Props) => {
       </Card>
     </View>    
     <StatusBar style="light"/>
+</ScrollView>
     </>
   );
 };

@@ -2,8 +2,8 @@ import AlertMessage from "@/components/Cards/AlertMessage";
 import DateTimeComponent from "@/components/DateTimeSelect";
 import { SelectComponentBYFORM } from "@/components/SelectComponent";
 import { useCallback, useEffect, useState } from "react";
-import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, useWindowDimensions, View } from "react-native";
-import { Button, Card, Text, TextInput } from "react-native-paper";
+import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, useColorScheme, useWindowDimensions, View } from "react-native";
+import { Button, Card, Text, TextInput, useTheme } from "react-native-paper";
 import NoOfTwoBoxComponent, { BoxData } from "./NoOfTwoBoxComponent";
 import axios from 'axios';
 import dayjs from "dayjs";
@@ -512,6 +512,9 @@ export default function RakeSampleForm() {
     }
   };
 
+  let colorScheme = useColorScheme();
+  const theme = useTheme();
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1 }}>
@@ -521,7 +524,7 @@ export default function RakeSampleForm() {
 
           {/* 1. Client & Rake Details */}
           <Card style={styles.card}>
-            <Card.Title title="Client & Rake Details" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Title title="Client & Rake Details" titleStyle={{ fontWeight: "bold", color: "#000000"}}/>
             <Card.Content>
               <TextInput
                 label="Client Name"
@@ -579,7 +582,7 @@ export default function RakeSampleForm() {
 
           {/* 2. Dates & Sampling Timeline */}
           <Card style={styles.card}>
-            <Card.Title title="Dates & Sampling Timeline" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Title title="Dates & Sampling Timeline" titleStyle={{ fontWeight: "bold", color: "#000000"}}/>
             <Card.Content>
               <DateTimeComponent
                 label="Rake placement date & time"
@@ -650,7 +653,7 @@ export default function RakeSampleForm() {
 
           {/* 3. Bags & Wagons */}
           <Card style={styles.card}>
-            <Card.Title title="Bags & Wagons" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Title title="Bags & Wagons" titleStyle={{ fontWeight: "bold", color: "#000000"}}/>
             <Card.Content>
               <TextInput
                 label="No of bags Collected"
@@ -683,7 +686,7 @@ export default function RakeSampleForm() {
 
           {/* 4. Agencies & Personnel */}
           <Card style={styles.card}>
-            <Card.Title title="Agencies & Personnel" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Title title="Agencies & Personnel" titleStyle={{ fontWeight: "bold", color: "#000000"}}/>
             <Card.Content>
               <TextInput
                 label="Sampling Agency"
@@ -758,7 +761,7 @@ export default function RakeSampleForm() {
 
           {/* 5. Conditions & Remarks */}
           <Card style={styles.card}>
-            <Card.Title title="Conditions & Remarks" titleStyle={{ fontWeight: "bold"}}/>
+            <Card.Title title="Conditions & Remarks" titleStyle={{ fontWeight: "bold", color: "#000000"}}/>
             <Card.Content>
               <SelectComponentBYFORM
                 field={{ name: "weatherCondition", label: "Weather Condition" }}
@@ -776,7 +779,7 @@ export default function RakeSampleForm() {
                 label="Remarks"
                 value={`${formData?.remarks}`}
                 onChangeText={text => setFormData({ ...formData, remarks: text })}
-                style={styles.input}
+                style={[styles.input, {color: "#000000"}]}
                 multiline
                 numberOfLines={4}
                 mode="outlined"
@@ -785,7 +788,11 @@ export default function RakeSampleForm() {
             <View style={styles.cardBottom} />
           </Card>
 
-          <Button mode="contained" onPress={handleSubmit} style={styles.button}>
+          <Button mode="contained" onPress={handleSubmit} style={styles.button}
+          // disabled={isFormEmpty}
+          loading={loading}
+          // labelStyle={{ color: colorScheme === "dark" ? "#ffffff" : isFormEmpty ? "#656566" : "#ffffff" }}
+          >
             {isUpdateMode ? "Update" : "Submit"}
           </Button>
 
@@ -794,6 +801,7 @@ export default function RakeSampleForm() {
             onPress={resetForm}
             disabled={isFormEmpty}
             style={[styles.button, { marginTop: 8 }]}
+            // labelStyle={{ color: colorScheme === "dark" && !isFormEmpty ? "#ffffff" : "#656566" }}
           >
             Clear
           </Button>
@@ -818,9 +826,11 @@ export default function RakeSampleForm() {
 const styles = StyleSheet.create({
   container: {
     // padding: 16,
+    paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 24,
     flexGrow: 1,
+    backgroundColor: "#f0f0f0"
   },
   card: {    
     borderRadius: 12,
@@ -841,12 +851,14 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 16,
-    backgroundColor: "#fff"
+    backgroundColor: "#fff",
+    color: "#000000"
   },
   button: {
     marginTop: 16,
     borderRadius: 8,
-    paddingVertical: 2
+    paddingVertical: 2,
+    color: "#fff"
   },
   errorText: {
     color: "red",
@@ -871,6 +883,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 6,
     fontWeight: '600',
+    borderColor: 'black',
   },
   selectLabel: {
     height: 50,

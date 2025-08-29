@@ -48,7 +48,7 @@ const AlertMessage: React.FC<AlertMessageProps> = ({
     <View style={[styles.container
       , !isLandScape && !pageLandscape ? styles.isLandscapeAlert : null
     ]}>
-      <Card style={[styles.card, { backgroundColor: backgroundColors[type] }]}>
+      <Card style={[styles.card, { backgroundColor: backgroundColors[type], borderColor: textColors[type] }]}>
         <Card.Content style={styles.content}>
           <Text style={[styles.text, { color: textColors[type] }]}>
             {message}
@@ -63,15 +63,16 @@ const AlertMessage: React.FC<AlertMessageProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 40,
+    top: 10,
     zIndex: 1000,
     height: "auto",
-    right: "26%",
-    left: "26%",
+    right: 10,
+    left: "50%"
   },
   card: {
     borderRadius: 8,
     elevation: 3,
+    borderWidth: 1,
   },
   content: {
     flexDirection: 'row',
@@ -85,8 +86,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   isLandscapeAlert: {
-    right: 16,
-    left: 16,
+    top: 0,
+    right: 0,
+    left: "30%",
   },
 });
 

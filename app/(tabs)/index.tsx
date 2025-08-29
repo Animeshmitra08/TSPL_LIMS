@@ -72,20 +72,20 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
-  const theme1 = {
-    ...DefaultTheme,
-    colors: {
-      ...DefaultTheme.colors,
-      primary: '#111b72ff', // Custom primary color (greenish)
-      accent: '#3498db', // Custom accent color (blueish)
-      text: '#34495e', // Darker text color
-      placeholder: '#7f8c8d', // Grey placeholder text
-      surfaceVariant: '#ecf0f1', // Background color for outlined input
-      error: '#e74c3c', // Red for error states,
-      secondary: '#3498db',
-    },
-    roundness: 8, // Rounded corners for components
-  };
+  // const theme = {
+  //   ...DefaultTheme,
+  //   colors: {
+  //     ...DefaultTheme.colors,
+  //     primary: '#111b72ff', // Custom primary color (greenish)
+  //     accent: '#3498db', // Custom accent color (blueish)
+  //     text: '#34495e', // Darker text color
+  //     placeholder: '#7f8c8d', // Grey placeholder text
+  //     surfaceVariant: '#ecf0f1', // Background color for outlined input
+  //     error: '#e74c3c', // Red for error states,
+  //     secondary: '#3498db',
+  //   },
+  //   roundness: 8, // Rounded corners for components
+  // };
   // Custom handle Close alert visible function
   function handleVisible() {
     setAlertVisible(false);
@@ -94,10 +94,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     isLandScape ?
       <View style={[styles.landscapeContainer]}>
         <View style={styles.landscapeImageView}>
-          {
+          {/* {
             carosual === 1 ? <Image source={require('@/assets/images/vedanta-logo.png')} style={styles.landscapeImage} /> :
               <Image source={require('@/assets/images/tspl-logo.jpeg')} style={styles.landscapeImage} />
-          }
+          } */}
+          <Image source={require('@/assets/images/tspl-logo.jpeg')} style={styles.landscapeImage} />
         </View>
         <View style={[styles.formLanscape, , styles.landscapeTop]}>
           <Text style={styles.title}>Login</Text>
@@ -109,8 +110,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               value={username}
               onChangeText={(newUsername) => setUsername(newUsername)}
               style={styles.input}
-              outlineColor={theme1.colors.primary}
-              activeOutlineColor={theme1.colors.accent}
+              outlineColor={theme.colors.primary}
+              activeOutlineColor={theme.colors.accent}
               error={false}
             />
           </View>
@@ -160,8 +161,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               }}
               left={<TextInput.Icon icon="robot" />} // Icon on the left side
               style={styles.input}
-              outlineColor={theme1.colors.primary}
-              activeOutlineColor={theme1.colors.accent}
+              outlineColor={theme.colors.primary}
+              activeOutlineColor={theme.colors.accent}
               error={false}
             />
           </View>
@@ -196,16 +197,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         style={styles.container}
         keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
       >
-        <Card style={styles.card}>
+        <Card style={[styles.card ]}>
           <Card.Content>
             <View>
               <View style={styles.imageBox}>
-
-                <Image source={require('@/assets/images/vedanta-logo.png')} style={styles.image1} />
-
                 <Image source={require('@/assets/images/tspl-logo.jpeg')} style={styles.image1} />
               </View>
-              <Text style={styles.title}>
+              <Text style={[styles.title]}>
                 Login
               </Text>
             </View>
@@ -217,9 +215,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 value={username}
                 onChangeText={(newUsername) => setUsername(newUsername)}
                 left={<TextInput.Icon icon="account" />} // Icon on the left side
-                style={styles.input}
-                outlineColor={theme1.colors.primary}
-                activeOutlineColor={theme1.colors.accent}
+                style={[styles.input]}
+                outlineColor={theme.colors.primary}
+                activeOutlineColor={theme.colors.accent}
                 theme={{ roundness: 10 }}
                 error={false}
               />
@@ -240,8 +238,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   />
                 }
                 style={styles.input}
-                outlineColor={theme1.colors.primary}
-                activeOutlineColor={theme1.colors.accent}
+                outlineColor={theme.colors.primary}
+                activeOutlineColor={theme.colors.accent}
                 theme={{ roundness: 10 }}
                 error={false}
               />
@@ -275,8 +273,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 }}
                 left={<TextInput.Icon icon="robot" />} // Icon on the left side
                 style={styles.input}
-                outlineColor={theme1.colors.primary}
-                activeOutlineColor={theme1.colors.accent}
+                outlineColor={theme.colors.primary}
+                activeOutlineColor={theme.colors.accent}
                 theme={{ roundness: 10 }}
                 error={false}
               />
@@ -287,11 +285,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               disabled={!username || !password}
               style={[
                 styles.button,
-                { backgroundColor: theme.colors.secondary }, // You can also directly set the color here
-                // Add a disabled style conditionally
+                { backgroundColor: theme.colors.secondary }, 
                 (!username || !password) && styles.disabledButton,
               ]}
-              labelStyle={styles.buttonLabel} // Style for the text inside the button
+              labelStyle={styles.buttonLabel}
             >
               Login
             </Button>
@@ -322,12 +319,15 @@ const styles = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,
+    borderColor: "#ddd",
+    borderWidth: 1,
+    shadowColor: "#000",
     backgroundColor: "white"
   },
   title: {
     fontSize: 34,
     alignSelf: 'center',
-    marginBottom: 7,
+    // marginVertical: 10,
     fontFamily: "Cochin",
     fontWeight: "900",
   },
@@ -340,10 +340,13 @@ const styles = StyleSheet.create({
     gap: 1,
     justifyContent: "space-around",
     alignItems: "center",
-    marginBottom: 1
+    marginBottom: 8,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 2,
   },
   image1: {
-    width: 150,
+    width: 120,
     height: 100,
     alignSelf: 'center',
     resizeMode: "center",

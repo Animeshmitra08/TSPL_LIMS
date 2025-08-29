@@ -24,6 +24,7 @@ import {
   Card,
   Text,
   TextInput,
+  useTheme,
 } from 'react-native-paper';
 import NoOfTwoBoxComponent, { BoxData } from './NoOfTwoBoxComponent';
 import { StatusBar } from 'expo-status-bar';
@@ -297,8 +298,9 @@ const HomeScreen = () => {
       entrY_BY: user?.fullname || "User"
     }));
 
-    if (!formValidaty(formData)) {
-      setAlertMessage("Please enter all fields");
+    const result = formValidaty(formData);
+    if (!result.valid) {
+      setAlertMessage(result.message || "Please enter all fields");
       setAlertType("error");
       setAlertVisible(true);
       setTimeout(() => setAlertVisible(false), 2000);
@@ -371,10 +373,12 @@ const HomeScreen = () => {
   const screenHeight = Dimensions.get("window").height;
   const screenWidht = Dimensions.get("window").width;
 
+  const theme = useTheme();
+
   return (
     <>
     <SafeAreaProvider>
-      <SafeAreaView style={{ flex: 1 }}>        
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f0f0" }} edges={['top', 'left', 'right']}>        
         <KeyboardAvoidingView
           behavior="padding"
           keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}
@@ -402,7 +406,7 @@ const HomeScreen = () => {
                   />
                 </Card.Content>    
                 {/* <View style={styles.cardBottom} /> */}
-              </Card>++
+              </Card>
 
 
               <Card style={styles.card}>
@@ -459,6 +463,7 @@ const HomeScreen = () => {
                     style={styles.input}
                     mode="outlined"
                     placeholderTextColor={"#000"}
+                    theme={{ colors: { text: '#000' } }}
                   />
 
                   {Number(formData?.bagsCollected) > 100 && (
@@ -563,6 +568,7 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 12,
     backgroundColor: "#fff",
+    // color: "#000",
   },
   button: {
     marginTop: 16,
@@ -612,6 +618,8 @@ export const SelectComponent = ({
   screenHeight,
   screenWidth
 }: any) => {
+
+  const theme = useTheme();
   return (<View>
     <Text style={styles.selectLabel}
       onPress={() => setIsVisible(true)}
@@ -639,8 +647,9 @@ export const SelectComponent = ({
           >
             <Button
               style={{ width: screenWidth * 0.95 }}
-              mode="contained-tonal"
+              mode="contained"
               onPress={() => setIsVisible(false)}
+              labelStyle={{ color: "#fff" }}
             >
               Close
             </Button>
@@ -689,25 +698,42 @@ export const SelectComponent = ({
   );
 };
 
-export function formValidaty(formData: any): boolean {
+export function formValidaty(formData: any): { valid: boolean; message?: string } {
   const requiredFields: (keyof typeof formData)[] = [
-    "truckNumber", "samplingAgency", "supervisorName", "bagsCollected", "sealNumbers", "samplingMode", "samplingDateTime"
-  ]
+    "truckNumber",
+    "samplingAgency",
+    "supervisorName",
+    "bagsCollected",
+    "sealNumbers",
+    "samplingMode",
+    "samplingDateTime",
+  ];
+
   if (Number(formData.bagsCollected) === 0 || Number(formData.bagsCollected) > 100) {
-    return false;
+    return { valid: false, message: "Number of bags must be between 1 and 100" };
   }
+
   for (const field of requiredFields) {
     const value = formData[field];
 
-    if (typeof value === "string" && value.trim() === "") {
-      console.log("Missing string field:", field, value);
-      return false;
+    if (typeof value === "string") {
+      if (
+        value.trim() === "" ||
+        value === "Select Truck Number" ||
+        value === "Select Sampling Mode"
+      ) {
+        return { valid: false, message: `Please select/enter ${String(field)}` };
+      }
+    }
+
+    if (Array.isArray(value) && value.length === 0) {
+      return { valid: false, message: `Please add ${String(field)}` };
     }
 
     if (value === undefined || value === null) {
-      console.log("Missing required field:", field, value);
-      return false;
+      return { valid: false, message: `Missing value for ${String(field)}` };
     }
   }
-  return true;
+
+  return { valid: true };
 }

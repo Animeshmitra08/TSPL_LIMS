@@ -7,6 +7,36 @@ import DrawerNavigator from '../(drawer)/DrawerNavigator';
 import { useAuth } from '@/context/AuthContext'; // ✅ use your AuthContext
 import axios from 'axios';
 
+const lightTheme = {
+    ...MD3LightTheme,
+    colors: {
+      ...MD3LightTheme.colors,
+      primary: '#111b72ff',
+      accent: '#3498db',
+      secondary: '#3498db',
+      surface: '#ffffff',
+      text: '#34495e',
+      placeholder: '#7f8c8d',
+      error: '#e74c3c',
+    },
+    roundness: 8,
+  };
+
+  // const darkTheme = {
+  //   ...MD3DarkTheme,
+  //   colors: {
+  //     ...MD3DarkTheme.colors,
+  //     primary: '#4a6cf7',
+  //     secondary: '#5dade2',
+  //     accent: '#3498db',
+  //     surface: '#193b86ff',
+  //     text: '#fff',
+  //     placeholder: '#95a5a6',
+  //     error: '#e74c3c',
+  //   },
+  //   roundness: 8,
+  // };
+
 export default function TabsLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -16,18 +46,22 @@ export default function TabsLayout() {
   const { user, login, logout } = useAuth(); // ✅ comes from AuthContext
   const scheme = useColorScheme();
 
-  const theme = {
-    ...(scheme === 'dark' ? MD3DarkTheme : MD3LightTheme),
-    roundness: 2,
-    colors: {
-      ...(scheme === 'dark' ? MD3DarkTheme.colors : MD3LightTheme.colors),
-      primary: '#03045e',
-      secondary: '#0077b6',
-      tertiary: '#00b4d8',
-      quaternary: '#90e0ef',
-      lightness: '#caf0f8',
-    },
-  };
+
+  
+
+  // const theme = scheme === 'dark' ? darkTheme : lightTheme;
+  // const theme = {
+  //   ...(scheme === 'dark' ? MD3DarkTheme : MD3LightTheme),
+  //   roundness: 2,
+  //   colors: {
+  //     ...(scheme === 'dark' ? MD3DarkTheme.colors : MD3LightTheme.colors),
+  //     primary: '#03045e',
+  //     secondary: '#0077b6',
+  //     tertiary: '#00b4d8',
+  //     quaternary: '#90e0ef',
+  //     lightness: '#caf0f8',
+  //   },
+  // };
 
   useEffect(() => {
     // small timeout to simulate loading
@@ -39,7 +73,7 @@ export default function TabsLayout() {
     setIsLoading(true);
     try {
       const res = await axios.get(
-        `https://vedantaconnect.com:8070/FacorApi/api/User/${username.toUpperCase()}`
+        `https://tsplindia.info/itmsapi/api/TSPL_Users/${username.toUpperCase()}`
       );
 
       if (res.data?.success) {
@@ -82,10 +116,10 @@ export default function TabsLayout() {
   const handleVisible = () => setAlertVisible(false);
 
   return (
-    <PaperProvider theme={theme}>
+    <PaperProvider theme={lightTheme}>
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator animating={true} size="large" color={theme.colors.primary} />
+          <ActivityIndicator animating={true} size="large" />
           <Text variant="titleMedium" style={{ marginTop: 10 }}>
             Loading...
           </Text>
