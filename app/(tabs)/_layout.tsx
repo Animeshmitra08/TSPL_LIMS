@@ -4,7 +4,7 @@ import { useColorScheme, View } from 'react-native';
 import { ActivityIndicator, MD3DarkTheme, MD3LightTheme, PaperProvider, Text } from 'react-native-paper';
 import LoginPage from '.';
 import DrawerNavigator from '../(drawer)/DrawerNavigator';
-import { useAuth } from '@/context/AuthContext'; // ✅ use your AuthContext
+import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
 
 const lightTheme = {
@@ -43,7 +43,7 @@ export default function TabsLayout() {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'info' | 'error' | 'success'>('info');
 
-  const { user, login, logout } = useAuth(); // ✅ comes from AuthContext
+  const { user, login, logout } = useAuth();
   const scheme = useColorScheme();
 
 

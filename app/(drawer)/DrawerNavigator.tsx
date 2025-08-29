@@ -104,9 +104,9 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
 }
 
 async function handleLogout(onLogout: () => Promise<void>) {
-  Alert.alert("Are you sure You want to Logout", "This action will throw you for login", [
+  Alert.alert("Are you sure You want to Logout?", "This action will throw you for login", [
     {
-      text: "cancel",
+      text: "Cancel",
       onPress: () => { }
     },
     {
