@@ -834,7 +834,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 24,
-    paddingTop: 16,
     flexGrow: 1,
     backgroundColor: "#f0f0f0"
   },

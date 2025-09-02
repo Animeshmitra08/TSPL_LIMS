@@ -165,7 +165,7 @@ const HomeScreen = () => {
         samplingDateTime: null,
       });
 
-      setAlertMessage(err?.message || "Failed to fetch data for this truck");
+      setAlertMessage((err as any)?.message || "Failed to fetch data for this truck");
       setAlertType("error");
       setAlertVisible(true);
       setTimeout(() => setAlertVisible(false), 3000);
