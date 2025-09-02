@@ -266,6 +266,7 @@ export default function RakeSampleForm() {
     setRpDateTime(undefined);
     setRUnloadDateTime(undefined);
     setRakeCompleteDT(undefined);
+    setIsUpdateMode(false);
   }
 
   useFocusEffect(
@@ -281,6 +282,7 @@ export default function RakeSampleForm() {
 
 
   const fetchRakeData = async (rakeId: string) => {
+    setLoading(true);
     try {
       const response = await axios.get(
         `https://tsplindia.info/TSPLSAMPLING/api/Sampling/Filter/POWERTYPE/COAL?RakeNo=${rakeId}`
@@ -337,6 +339,8 @@ export default function RakeSampleForm() {
         setAlertVisible(true);
         setTimeout(() => setAlertVisible(false), 3000);
 
+        setLoading(false);
+
         setIsUpdateMode(true);
       } else {
         setFormData((prev) => ({
@@ -364,6 +368,7 @@ export default function RakeSampleForm() {
         setAlertType("info");
         setAlertVisible(true);
         setTimeout(() => setAlertVisible(false), 3000);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error fetching rake data:", error);
@@ -829,6 +834,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 24,
+    paddingTop: 16,
     flexGrow: 1,
     backgroundColor: "#f0f0f0"
   },

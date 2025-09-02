@@ -28,7 +28,7 @@ import {
 } from 'react-native-paper';
 import NoOfTwoBoxComponent, { BoxData } from './NoOfTwoBoxComponent';
 import { StatusBar } from 'expo-status-bar';
-import { useFocusEffect } from '@react-navigation/native'; // ✅ added
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/context/AuthContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
