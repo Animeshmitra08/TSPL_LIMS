@@ -491,13 +491,13 @@ export default function RakeSampleForm() {
 
       console.log("Payload:", JSON.stringify(payload, null, 2));
 
-      // const response = await axios.post(
-      //   "https://tsplindia.info/TSPLSAMPLING/api/Sampling/PTYPE/COAL",
-      //   payload,
-      //   { headers: { "Content-Type": "application/json" } }
-      // );
+      const response = await axios.post(
+        "https://tsplindia.info/TSPLSAMPLING/api/Sampling/PTYPE/COAL",
+        payload,
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-      // console.log("API Response:", response.data);
+      console.log("API Response:", response.data);
 
       setAlertMessage("Data submitted successfully");
       setAlertType("success");
