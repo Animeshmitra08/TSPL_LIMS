@@ -68,7 +68,18 @@ const HomeScreen = () => {
 
   const { user } = useAuth();
 
-  const handleOpenTruckDropdown = async () => {
+  const samplingAgencyRef = React.useRef<any>(null);
+  const supervisorRef = React.useRef<any>(null);
+  const samplerRef = React.useRef<any>(null);
+  const bagsCollectedRef = React.useRef<any>(null);
+  const samplingModeRef = React.useRef<any>(null);
+
+  // Fetch truck data on component mount using useEffect
+  useEffect(() => {
+    fetchTruckData();
+  }, []);
+
+  const fetchTruckData = async () => {
     if (!biomassData?.tRegNo || biomassData.tRegNo.length === 0) {
       setLoadingTrucks(true);
       try {
@@ -154,7 +165,6 @@ const HomeScreen = () => {
         setIsUpdateMode(false);
       }
     } catch (err) {
-      console.error("Error fetching biomass data:", err);
       setFormData({
         truckNumber: truckNo,
         samplingAgency: "",
@@ -165,7 +175,7 @@ const HomeScreen = () => {
         samplingDateTime: null,
       });
 
-      setAlertMessage((err as any)?.message || "Failed to fetch data for this truck");
+      setAlertMessage("No existing data for this truck");
       setAlertType("error");
       setAlertVisible(true);
       setTimeout(() => setAlertVisible(false), 3000);
@@ -291,9 +301,18 @@ const HomeScreen = () => {
     setIsUpdateMode(false);
   };
 
-
   const handleSubmit = async () => {
     if (!formData.samplingDateTime) return;
+
+    const result = formValidaty(formData, supervisor, sampler, boxes);
+    if (!result.valid) {
+      setAlertMessage(result.message || "Please enter all required fields");
+      setAlertType("error");
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 3000);
+      return;
+    }
+
 
     const cleanedBoxes = boxes.map(({ bagNo, seal }) => ({
       zmode: "BIOMASS",
@@ -302,15 +321,6 @@ const HomeScreen = () => {
       seaL_NO: seal,
       entrY_BY: user?.fullname || "User"
     }));
-
-    const result = formValidaty(formData);
-    if (!result.valid) {
-      setAlertMessage(result.message || "Please enter all fields");
-      setAlertType("error");
-      setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 2000);
-      return;
-    }
 
     const payload = {
       t_COAL_SAMPLING: [],
@@ -343,7 +353,6 @@ const HomeScreen = () => {
       );
 
       console.log("Submission success:", data);
-      console.log("Payload to be submitted:", payload);
       
       setAlertMessage("Rake Sampling Report submitted");
       setAlertType("success");
@@ -382,162 +391,162 @@ const HomeScreen = () => {
 
   return (
     <>
-    <SafeAreaProvider>
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f0f0" }} edges={['top', 'left', 'right']}>        
-        <KeyboardAvoidingView
-          behavior="padding"
-          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f0f0" }} edges={['top', 'left', 'right']}>        
+          <KeyboardAvoidingView
+            behavior="padding"
+            keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}
           >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ScrollView contentContainerStyle={styles.container}>
-              <Card style={styles.card}>
-                <Card.Content>
-                  <SelectComponentBYFORM
-                    field={{
-                      label: "Select Truck Number",
-                      name: "truckNumber",
-                    }}
-                    formData={formData}
-                    handleChange={handleChange}
-                    isVisible={isTruckVisible}
-                    setIsVisible={setIsTruckVisible}
-                    screenHeight={screenHeight}
-                    screenWidth={screenWidht}
-                    dataList={truckOptions}
-                    onOpen={() => {
-                      setIsTruckVisible(true);
-                      handleOpenTruckDropdown();
-                    }}
-                  />
-                </Card.Content>    
-                {/* <View style={styles.cardBottom} /> */}
-              </Card>
-
-
-              <Card style={styles.card}>
-                <Card.Content>
-                  <DateTimeComponent
-                    label="Sampling Date & Time"
-                    mode="outlined"
-                    style={styles.input}
-                    date={formData.samplingDateTime}
-                    setDate={(date: Date) =>
-                      setFormData((prev) => ({ ...prev, samplingDateTime: date }))
-                    }
-                  />
-
-                  <TextInput
-                    label="Sampling Agency"
-                    value={formData.samplingAgency}
-                    onChangeText={(text) =>
-                      setFormData({ ...formData, samplingAgency: text })
-                    }
-                    style={styles.input}
-                    mode="outlined"
-                  />
-
-                  <TextInput
-                    label="Supervisor Name"
-                    value={supervisor}
-                    onChangeText={(text) => {
-                      setSupervisor(text);
-                      updateSupervisorName(text, sampler);
-                    }}
-                    style={styles.input}
-                    mode="outlined"
-                  />
-
-                  <TextInput
-                    label="Sampler Name"
-                    value={sampler}
-                    onChangeText={(text) => {
-                      setSampler(text);
-                      updateSupervisorName(supervisor, text);
-                    }}
-                    style={styles.input}
-                    mode="outlined"
-                  />
-
-                  <TextInput
-                    label="Number of Bags Collected"
-                    value={formData.bagsCollected}
-                    onChangeText={(text: string) => {
-                      setFormData({ ...formData, bagsCollected: text });
-                    }}
-                    keyboardType="numeric"
-                    style={styles.input}
-                    mode="outlined"
-                    placeholderTextColor={"#000"}
-                    theme={{ colors: { text: '#000' } }}
-                  />
-
-                  {Number(formData?.bagsCollected) > 100 && (
-                    <Text
-                      style={{
-                        color: "red",
-                        marginBottom: 10,
-                        marginLeft: 2,
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <ScrollView contentContainerStyle={styles.container}>
+                <Card style={styles.card}>
+                  <Card.Content>
+                    <SelectComponentBYFORM
+                      field={{
+                        label: "Select Truck Number",
+                        name: "truckNumber",
                       }}
+                      formData={formData}
+                      handleChange={handleChange}
+                      isVisible={isTruckVisible}
+                      setIsVisible={setIsTruckVisible}
+                      screenHeight={screenHeight}
+                      screenWidth={screenWidht}
+                      dataList={truckOptions}
+                      onOpen={() => {
+                        setIsTruckVisible(true);
+                        // No need to call handleOpenTruckDropdown here since data is already fetched via useEffect
+                      }}
+                    />
+                  </Card.Content>    
+                </Card>
+
+                <Card style={styles.card}>
+                  <Card.Content>
+                    <DateTimeComponent
+                      label="Sampling Date & Time"
+                      mode="outlined"
+                      style={styles.input}
+                      date={formData.samplingDateTime}
+                      setDate={(date: Date) =>
+                        setFormData((prev) => ({ ...prev, samplingDateTime: date }))
+                      }
+                    />
+
+                    <TextInput
+                      ref={samplingAgencyRef}
+                      label="Sampling Agency"
+                      value={formData.samplingAgency}
+                      onChangeText={(text) =>
+                        setFormData({ ...formData, samplingAgency: text })
+                      }
+                      style={styles.input}
+                      mode="outlined"
+                    />
+
+                    <TextInput
+                      ref={supervisorRef}
+                      label="Supervisor Name"
+                      value={supervisor}
+                      onChangeText={(text) => {
+                        setSupervisor(text);
+                        updateSupervisorName(text, sampler);
+                      }}
+                      style={styles.input}
+                      mode="outlined"
+                    />
+
+                    <TextInput
+                      ref={samplerRef}
+                      label="Sampler Name"
+                      value={sampler}
+                      onChangeText={(text) => {
+                        setSampler(text);
+                        updateSupervisorName(supervisor, text);
+                      }}
+                      style={styles.input}
+                      mode="outlined"
+                    />
+
+                    <TextInput
+                      ref={bagsCollectedRef}
+                      label="Number of Bags Collected"
+                      value={formData.bagsCollected}
+                      onChangeText={(text: string) => {
+                        setFormData({ ...formData, bagsCollected: text });
+                      }}
+                      keyboardType="numeric"
+                      style={styles.input}
+                      mode="outlined"
+                      placeholderTextColor={"#000"}
+                      theme={{ colors: { text: '#000' } }}
+                    />
+
+                    {Number(formData?.bagsCollected) > 100 && (
+                      <Text
+                        style={{
+                          color: "red",
+                          marginBottom: 10,
+                          marginLeft: 2,
+                        }}
+                      >
+                        Bags must be less than 100
+                      </Text>
+                    )}
+
+                    <NoOfTwoBoxComponent
+                      boxes={boxes}
+                      setBoxes={(updated: BoxData[]) => {
+                        setBoxes(updated);
+                        setFormData((prev) => ({ ...prev, sealNumbers: updated }));
+                      }}
+                      number={Number(formData?.bagsCollected) || 0}
+                    />
+
+                    <SelectComponentBYFORM
+                      field={{
+                        label: "Select Sampling Mode",
+                        name: "samplingMode",
+                      }}
+                      formData={formData}
+                      handleChange={handleChange}
+                      isVisible={isSamplingModeVisible}
+                      setIsVisible={setIsSamplingModeVisible}
+                      dataList={samplingModes}
+                      screenHeight={screenHeight}
+                      screenWidth={screenWidht}
+                    />
+
+                    <Button mode="contained" onPress={handleSubmit} style={styles.button}>
+                      {isUpdateMode ? "Update" : "Submit"}
+                    </Button>
+                    <Button
+                      mode="outlined"
+                      onPress={resetForm}
+                      disabled={isFormEmpty}
+                      style={[styles.button, { marginTop: 8 }]}
                     >
-                      Bags must be less than 100
-                    </Text>
-                  )}
+                      Clear
+                    </Button>
 
-                  <NoOfTwoBoxComponent
-                    boxes={boxes}
-                    setBoxes={(updated: BoxData[]) => {
-                      setBoxes(updated);
-                      setFormData((prev) => ({ ...prev, sealNumbers: updated }));
-                    }}
-                    number={Number(formData?.bagsCollected) || 0}
-                  />
+                  </Card.Content>    
+                </Card>
+              </ScrollView>
+            </TouchableWithoutFeedback>
 
-                  <SelectComponentBYFORM
-                    field={{
-                      label: "Select Sampling Mode",
-                      name: "samplingMode",
-                    }}
-                    formData={formData}
-                    handleChange={handleChange}
-                    isVisible={isSamplingModeVisible}
-                    setIsVisible={setIsSamplingModeVisible}
-                    dataList={samplingModes}
-                    screenHeight={screenHeight}
-                    screenWidth={screenWidht}
-                  />
-
-                  <Button mode="contained" onPress={handleSubmit} style={styles.button}>
-                    {isUpdateMode ? "Update" : "Submit"}
-                  </Button>
-                  <Button
-                    mode="outlined"
-                    onPress={resetForm}
-                    disabled={isFormEmpty}
-                    style={[styles.button, { marginTop: 8 }]}
-                  >
-                    Clear
-                  </Button>
-
-                </Card.Content>    
-                {/* <View style={styles.cardBottom} /> */}
-              </Card>
-            </ScrollView>
-          </TouchableWithoutFeedback>
-
-          <AlertMessage
-            key={alertMessage + alertVisible}
-            visible={alertVisible}
-            message={alertMessage}
-            type={alertType}
-            onDismiss={() => setAlertVisible(false)}
-            isLandScape={isLandScape}
-            handleVisible={handleVisible}
-          />
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </SafeAreaProvider>
+            <AlertMessage
+              key={alertMessage + alertVisible}
+              visible={alertVisible}
+              message={alertMessage}
+              type={alertType}
+              onDismiss={() => setAlertVisible(false)}
+              isLandScape={isLandScape}
+              handleVisible={handleVisible}
+            />
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </>
-
   );
 };
 
@@ -573,7 +582,6 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 12,
     backgroundColor: "#fff",
-    // color: "#000",
   },
   button: {
     marginTop: 16,
@@ -613,131 +621,72 @@ const styles = StyleSheet.create({
 
 export default HomeScreen;
 
-
-export const SelectComponent = ({
-  field,
-  formData,
-  handleChange,
-  isVisible,
-  setIsVisible,
-  screenHeight,
-  screenWidth
-}: any) => {
-
-  const theme = useTheme();
-  return (<View>
-    <Text style={styles.selectLabel}
-      onPress={() => setIsVisible(true)}
-    >
-      {formData[field.name] || `Select field`}
-    </Text>
-
-    <Modal
-      visible={isVisible}
-      animationType="slide"
-      transparent
-    >
-      <TouchableWithoutFeedback>
-        <View style={styles.modalOverlay}>
-          <View
-            style={{
-              height: screenHeight * 0.5,
-              backgroundColor: 'white',
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              rowGap: 10,
-            }}
-          >
-            <Button
-              style={{ width: screenWidth * 0.95 }}
-              mode="contained"
-              onPress={() => setIsVisible(false)}
-              labelStyle={{ color: "#fff" }}
-            >
-              Close
-            </Button>
-            <SelectList
-              setSelected={(val: string) => {
-                handleChange(field.name, val);
-                setIsVisible(false);
-              }}
-              onSelect={() => {
-                setIsVisible(false);
-              }}
-              data={field.options}
-              save="value"
-              boxStyles={{
-                width: screenWidth * 0.95,
-                borderWidth: 0,
-                borderColor: 'transparent',
-                backgroundColor: '#f1f1f1',
-                borderRadius: 10,
-              }}
-              inputStyles={{
-                padding: 2,
-                fontSize: 16,
-                color: '#333',
-              }}
-              dropdownStyles={{
-                borderWidth: 0,
-                backgroundColor: '#f1f1f1',
-                elevation: 3,
-                width: screenWidth * 0.95
-              }}
-              closeicon={
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color={'#999'}
-                  style={{ marginLeft: 10 }}
-                />
-              }
-            />
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
-  </View>
-  );
-};
-
-export function formValidaty(formData: any): { valid: boolean; message?: string } {
-  const requiredFields: (keyof typeof formData)[] = [
-    "truckNumber",
-    "samplingAgency",
-    "supervisorName",
-    "bagsCollected",
-    "sealNumbers",
-    "samplingMode",
-    "samplingDateTime",
-  ];
-
+export function formValidaty(formData: any, supervisor: string, sampler: string, boxes: BoxData[]): { 
+  valid: boolean; 
+  message?: string;
+} {
+  // Check if number of bags is valid
   if (Number(formData.bagsCollected) === 0 || Number(formData.bagsCollected) > 100) {
-    return { valid: false, message: "Number of bags must be between 1 and 100" };
+    return { 
+      valid: false, 
+      message: "Number of bags must be between 1 and 99" 
+    };
   }
 
-  for (const field of requiredFields) {
-    const value = formData[field];
+  // Check truck number
+  if (!formData.truckNumber || formData.truckNumber === "Select Truck Number") {
+    return { 
+      valid: false, 
+      message: "Please select a valid truck number"
+    };
+  }
 
-    if (typeof value === "string") {
-      if (
-        value.trim() === "" ||
-        value === "Select Truck Number" ||
-        value === "Select Sampling Mode"
-      ) {
-        return { valid: false, message: `Please select/enter ${String(field)}` };
-      }
-    }
+  // Check sampling agency
+  if (!formData.samplingAgency || formData.samplingAgency.trim() === "") {
+    return { 
+      valid: false, 
+      message: "Please enter sampling agency"
+    };
+  }
 
-    if (Array.isArray(value) && value.length === 0) {
-      return { valid: false, message: `Please add ${String(field)}` };
-    }
+  // Check supervisor (from separate state)
+  if (!supervisor || supervisor.trim() === "") {
+    return { 
+      valid: false, 
+      message: "Please enter supervisor name"
+    };
+  }
 
-    if (value === undefined || value === null) {
-      return { valid: false, message: `Missing value for ${String(field)}` };
-    }
+  // Check sampler (from separate state)
+  if (!sampler || sampler.trim() === "") {
+    return { 
+      valid: false, 
+      message: "Please enter sampler name"
+    };
+  }
+
+  // Check sampling mode
+  if (!formData.samplingMode || formData.samplingMode === "Select Sampling Mode") {
+    return { 
+      valid: false, 
+      message: "Please select a sampling mode"
+    };
+  }
+
+  // Check sampling date time
+  if (!formData.samplingDateTime || !(formData.samplingDateTime instanceof Date)) {
+    return { 
+      valid: false, 
+      message: "Please select a valid sampling date and time" 
+    };
+  }
+
+  // Check seal numbers (boxes)
+  if (!boxes || boxes.length === 0 || boxes.length !== Number(formData.bagsCollected)) {
+    return { 
+      valid: false, 
+      message: "Please add seal numbers for all bags"
+    };
   }
 
   return { valid: true };

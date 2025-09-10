@@ -1,11 +1,13 @@
-import AlertMessage from '@/components/Cards/AlertMessage';
 import React, { useEffect, useState } from 'react';
-import { useColorScheme, View } from 'react-native';
-import { ActivityIndicator, MD3DarkTheme, MD3LightTheme, PaperProvider, Text } from 'react-native-paper';
+import { BackHandler, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, MD3DarkTheme, MD3LightTheme, PaperProvider, Snackbar, Text } from 'react-native-paper';
 import LoginPage from '.';
 import DrawerNavigator from '../(drawer)/DrawerNavigator';
 import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ResetPasswordPage from '../Screens/ResetPassword';
+import { decrypt, encrypt } from '@/context/cryptoutils';
 
 const lightTheme = {
     ...MD3LightTheme,
@@ -39,53 +41,44 @@ const lightTheme = {
 
 export default function TabsLayout() {
   const [isLoading, setIsLoading] = useState(true);
+  const [resetMode, setResetMode] = useState<{ user: any } | null>(null);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'info' | 'error' | 'success'>('info');
 
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, resetPassword } = useAuth();
   const scheme = useColorScheme();
 
-
-  
-
-  // const theme = scheme === 'dark' ? darkTheme : lightTheme;
-  // const theme = {
-  //   ...(scheme === 'dark' ? MD3DarkTheme : MD3LightTheme),
-  //   roundness: 2,
-  //   colors: {
-  //     ...(scheme === 'dark' ? MD3DarkTheme.colors : MD3LightTheme.colors),
-  //     primary: '#03045e',
-  //     secondary: '#0077b6',
-  //     tertiary: '#00b4d8',
-  //     quaternary: '#90e0ef',
-  //     lightness: '#caf0f8',
-  //   },
-  // };
+  const API_Base_URL = process.env.EXPO_PRIVATE_LOGIN_URL || 'https://tsplindia.info/itmsapi/api';
 
   useEffect(() => {
     // small timeout to simulate loading
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
-  }, []);
+  }, []);  
+  
 
   const handleLogin = async (username: string, password: string) => {
     setIsLoading(true);
     try {
       const res = await axios.get(
-        `https://tsplindia.info/itmsapi/api/TSPL_Users/${username.toUpperCase()}`
+        `${API_Base_URL}/TSPL_Users/${username.toUpperCase()}`
       );
 
       if (res.data?.success) {
-        const userData = res.data.data;
+        const userData = res.data.data;        
 
-        console.log('User data:', userData);
-        
-
-        // ✅ Call AuthContext login (your decryptPassword check runs inside it)
-        const success = await login(userData, password);
+        const success = await login(userData, password);        
 
         if (success) {
+          const decryptedPassword = decrypt(userData.password);
+          if (decryptedPassword === "Tspl@#202401") {
+            setResetMode({ user: userData });
+            setAlertMessage('Please reset your default password');
+            setAlertType('info');
+            return;
+          }
+
           setAlertMessage('Login Successful');
           setAlertType('success');
         } else {
@@ -106,6 +99,22 @@ export default function TabsLayout() {
     }
   };
 
+  useEffect(() => {
+    if (!resetMode) return;
+
+    const backAction = () => {
+      setResetMode(null); // go back to LoginPage
+      return true; // block default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [resetMode]);
+
   const handleLogout = async () => {
     await logout();
     setAlertMessage('Logged out');
@@ -113,10 +122,50 @@ export default function TabsLayout() {
     setAlertVisible(true);
   };
 
+  const handleResetPassword = (username: string) => {
+    if (!user) return; // fallback safety
+    setResetMode({ user });
+  };
+
+  const handleResetPasswordConfirm = async (username: string, oldPassword: string, newPassword: string) => {
+    setIsLoading(true);
+    try {
+      const encryptedPassword = encrypt(newPassword);
+
+      if (!user) throw new Error("No user Content");
+
+      const updatedUser = {
+        ...user,                     
+        password: encryptedPassword,
+      };
+
+      const res = await axios.post(`${API_Base_URL}/TSPL_Users/UpdateUser`, updatedUser);
+
+      if (res.data?.success) {
+        await resetPassword(oldPassword, newPassword);
+
+        setAlertMessage(res.data?.data || "Password reset successful");
+        setAlertType("success");
+        setResetMode(null);
+      } else {
+        setAlertMessage(res.data?.data || "Failed to reset password");
+        setAlertType("error");
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      setAlertMessage("Error connecting to server");
+      setAlertType("error");
+    } finally {
+      setAlertVisible(true);
+      setIsLoading(false);
+    }
+  };
+
   const handleVisible = () => setAlertVisible(false);
 
   return (
     <PaperProvider theme={lightTheme}>
+
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator animating={true} size="large" />
@@ -124,21 +173,40 @@ export default function TabsLayout() {
             Loading...
           </Text>
         </View>
+      )  : resetMode ? ( 
+        <ResetPasswordPage
+          username={resetMode.user.username}
+          onComplete={() => setResetMode(null)}
+          onResetConfirm={handleResetPasswordConfirm}
+        />
       ) : user ? (
         <DrawerNavigator onLogout={handleLogout} />
       ) : (
-        <LoginPage onLogin={handleLogin} />
+        <LoginPage 
+          onLogin={handleLogin} 
+          onResetPassword={handleResetPassword}
+        />
       )}
 
-      <AlertMessage
-        key={alertMessage + alertVisible}
+      <Snackbar
         visible={alertVisible}
-        message={alertMessage}
-        type={alertType}
         onDismiss={handleVisible}
-        isLandScape={false}
-        handleVisible={handleVisible}
-      />
+        duration={3000}
+        action={{
+          label: "OK",
+          onPress: () => setAlertVisible(false),
+        }}
+        style={{
+          backgroundColor:
+            alertType === "success"
+              ? "green"
+              : alertType === "error"
+              ? "red"
+              : "#3498db",
+        }}
+      >
+        {alertMessage}
+      </Snackbar>
     </PaperProvider>
   );
 }
