@@ -1587,6 +1587,53 @@ export default function RakeSampleForm() {
       missingFields.push("No of Bags should be less than 100");
     }
 
+    // NEW: Validate that bags and seal numbers are properly filled
+    if (formData.noOfBagsCollected > 0 && formData.noOfBagsCollected <= 100) {
+      // Check if we have the right number of boxes
+      if (boxes.length !== formData.noOfBagsCollected) {
+        missingFields.push(`Expected ${formData.noOfBagsCollected} bags, but found ${boxes.length} bag entries`);
+      }
+
+      // Check each box for missing or empty seal numbers
+      const emptySeals: number[] = [];
+      const emptyBags: number[] = [];
+      const duplicateSeals: string[] = [];
+      const seenSeals = new Set<string>();
+
+      boxes.forEach((box, index) => {
+        // Check for empty or missing bag numbers
+        if (!box.bagNo || String(box.bagNo).trim() === "") {
+          emptyBags.push(index + 1);
+        }
+
+        // Check for empty or missing seal numbers
+        if (!box.seal || String(box.seal).trim() === "") {
+          emptySeals.push(index + 1);
+        } else {
+          // Check for duplicate seal numbers
+          const sealStr = String(box.seal).trim();
+          if (seenSeals.has(sealStr)) {
+            duplicateSeals.push(sealStr);
+          } else {
+            seenSeals.add(sealStr);
+          }
+        }
+      });
+
+      // Add specific error messages for bag/seal issues
+      if (emptyBags.length > 0) {
+        missingFields.push(`Bag numbers missing for bag(s): ${emptyBags.join(', ')}`);
+      }
+
+      if (emptySeals.length > 0) {
+        missingFields.push(`Seal numbers missing for bag(s): ${emptySeals.join(', ')}`);
+      }
+
+      if (duplicateSeals.length > 0) {
+        missingFields.push(`Duplicate seal numbers found: ${duplicateSeals.join(', ')}`);
+      }
+    }
+
     return { missingFields, fieldRefs };
   };
 
@@ -1608,14 +1655,15 @@ export default function RakeSampleForm() {
     const { missingFields, fieldRefs } = validateForm();
     
     if (missingFields.length > 0) {
-      // Show alert with missing fields
-      console.log(`Please fill in the following fields:\n${missingFields.join('\n')}`);
+      const errorMessage = missingFields.length > 5 
+        ? `Please fix the following issues:\n\n• ${missingFields.slice(0, 5).join('\n• ')}\n\n...and ${missingFields.length - 5} more issues`
+        : `Please fix the following issues:\n\n• ${missingFields.join('\n• ')}`;
       
-      setAlertMessage(`Please fill in the following fields:\n${missingFields.join('\n')}`);
+      setAlertMessage(errorMessage);
       setAlertType("error");
       setAlertVisible(true);
       
-      // Focus on the first missing field
+      // Focus on the first missing field (if it's a basic field, not bag/seal related)
       const firstMissingField = missingFields[0].toLowerCase().replace(/\s+/g, '');
       const fieldMap: {[key: string]: string} = {
         'rakeno': 'rakeNo',
@@ -1633,6 +1681,9 @@ export default function RakeSampleForm() {
       if (fieldKey && fieldRefs[fieldKey]) {
         fieldRefs[fieldKey].current?.focus();
         scrollToInput(fieldRefs[fieldKey]);
+      } else if (firstMissingField.includes('seal') || firstMissingField.includes('bag')) {
+        // If the error is related to bags/seals, scroll to the bags section
+        scrollToInput(noOfBagsRef);
       }
       
       return;
@@ -1652,7 +1703,7 @@ export default function RakeSampleForm() {
         zmode: "COAL",
         rakE_OR_TRUCK_NO: formData.rakeNo,
         baG_NO: String(bagNo),
-        seaL_NO: seal,
+        seaL_NO: String(seal), 
         entrY_BY: user?.fullname
       }));
 
@@ -1739,6 +1790,29 @@ export default function RakeSampleForm() {
       setTimeout(() => setAlertVisible(false), 3000);
     }
   };
+
+  const validateBagsAndSeals = (currentBoxes: BoxData[], expectedCount: number) => {
+    const issues: string[] = [];
+    
+    if (currentBoxes.length !== expectedCount) {
+      issues.push(`Expected ${expectedCount} bags, found ${currentBoxes.length}`);
+    }
+    
+    const emptySeals = currentBoxes.filter((box, index) => !box.seal || String(box.seal).trim() === "");
+    if (emptySeals.length > 0) {
+      issues.push(`${emptySeals.length} bag(s) missing seal numbers`);
+    }
+    
+    const seals = currentBoxes.map(box => String(box.seal).trim()).filter(seal => seal !== "");
+    const duplicates = seals.filter((seal, index) => seals.indexOf(seal) !== index);
+    if (duplicates.length > 0) {
+      issues.push(`Duplicate seal numbers: ${[...new Set(duplicates)].join(', ')}`);
+    }
+    
+    return issues;
+  };
+
+  const bagValidationIssues = validateBagsAndSeals(boxes, formData.noOfBagsCollected);
 
   let colorScheme = useColorScheme();
   const theme = useTheme();
@@ -1909,7 +1983,6 @@ export default function RakeSampleForm() {
                   noOfWagonsRef.current?.focus();
                 }}
                 returnKeyType="next"
-                blurOnSubmit={false}
               />
 
               {Number(formData?.noOfBagsCollected) > 100 && (
@@ -1919,6 +1992,17 @@ export default function RakeSampleForm() {
               {Number(formData?.noOfBagsCollected) < 100 && (
                 <NoOfTwoBoxComponent number={formData?.noOfBagsCollected} boxes={boxes} setBoxes={setBoxes} />
               )}
+
+              {formData.noOfBagsCollected > 0 && (() => {
+                const issues = validateBagsAndSeals(boxes, formData.noOfBagsCollected);
+                return issues.length > 0 ? (
+                  <View style={styles.validationContainer}>
+                    {issues.map((issue, index) => (
+                      <Text key={index} style={styles.validationText}>⚠️ {issue}</Text>
+                    ))}
+                  </View>
+                ) : null;
+              })()}
 
               <TextInput
                 ref={noOfWagonsRef}
@@ -2201,6 +2285,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     textAlign: 'center',
+  },
+  validationContainer: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffeaa7',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  validationText: {
+    color: '#856404',
+    fontSize: 14,
+    marginBottom: 4,
   },
 });
 
