@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, ViewStyle, useWindowDimensions } from 'react-native';
 import { Card, IconButton, Text } from 'react-native-paper';
 
 type AlertType = 'success' | 'error' | 'info';
@@ -11,6 +11,7 @@ type AlertMessageProps = {
   onDismiss: () => void;
   isLandScape: boolean;
   handleVisible: () => void;
+  style?: ViewStyle; 
 };
 
 
@@ -33,7 +34,8 @@ const AlertMessage: React.FC<AlertMessageProps> = ({
   type = 'info',
   onDismiss,
   isLandScape,
-  handleVisible
+  handleVisible,
+  style
 }) => {
   const height = useWindowDimensions().height;
   const width = useWindowDimensions().width;
@@ -46,7 +48,8 @@ const AlertMessage: React.FC<AlertMessageProps> = ({
   if (!visible) return null;
   return (
     <View style={[styles.container
-      , !isLandScape && !pageLandscape ? styles.isLandscapeAlert : null
+      , !isLandScape && !pageLandscape ? styles.isLandscapeAlert : null,
+      style,
     ]}>
       <Card style={[styles.card, { backgroundColor: backgroundColors[type], borderColor: textColors[type] }]}>
         <Card.Content style={styles.content}>
@@ -63,7 +66,7 @@ const AlertMessage: React.FC<AlertMessageProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 10,
+    // top: 10,
     zIndex: 1000,
     height: "auto",
     right: 10,

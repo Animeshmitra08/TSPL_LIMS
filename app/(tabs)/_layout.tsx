@@ -138,6 +138,7 @@ export default function TabsLayout() {
         onDismiss={handleVisible}
         isLandScape={false}
         handleVisible={handleVisible}
+        style={{ top: 50}}
       />
     </PaperProvider>
   );
