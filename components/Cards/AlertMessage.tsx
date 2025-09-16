@@ -80,18 +80,20 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    height: 50,
+    alignItems: 'flex-start',
+    // height: 50,
   },
   text: {
-    flex: 1,
+    // flex: 1,
     fontSize: 14,
     fontWeight: '500',
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   isLandscapeAlert: {
     top: 0,
     right: 0,
-    left: "30%",
+    left: "10%",
   },
 });
 
