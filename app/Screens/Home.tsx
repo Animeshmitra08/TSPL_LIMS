@@ -32,6 +32,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/context/AuthContext';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import AlertSystem, { useAlerts } from '@/components/Cards/AlertSystem';
 
 dayjs.extend(customParseFormat);
 
@@ -102,6 +103,17 @@ const HomeScreen = () => {
   const baseurl = process.env.EXPO_PUBLIC_BASE_URL;
   const { user } = useAuth();
 
+  const { 
+    alerts, 
+    addAlert, 
+    removeAlert, 
+    addSuccess, 
+    addError, 
+    addInfo, 
+    addWarning,
+    clearAllAlerts 
+  } = useAlerts();
+
   // Debounce truck selection to avoid rapid API calls
   const debouncedTruckNumber = useDebounce(formData.truckNumber, 300);
 
@@ -137,6 +149,7 @@ const HomeScreen = () => {
       // Return stale cache if available, otherwise throw
       if (cached) {
         console.warn('Using stale cached data due to network error');
+        addWarning('Using cached data due to network issues');
         return cached.data;
       }
       throw error;
@@ -166,12 +179,16 @@ const HomeScreen = () => {
         tRegNo: data?.tRegNo ?? [],
         ...data,
       }));
+
+      if (data?.tRegNo?.length > 0) {
+        addInfo(`Loaded ${data.tRegNo.length} truck records`, {duration: 500});
+      }
     } catch (err) {
       console.error('Failed to fetch truck data', err);
       // Show user-friendly error message
-      setAlertMessage("Failed to load truck data. Please try again.");
-      setAlertType("error");
-      setAlertVisible(true);
+      // setAlertMessage("Failed to load truck data. Please try again.");
+      // setAlertType("error");
+      // setAlertVisible(true);
     } finally {
       setLoadingTrucks(false);
     }
@@ -180,6 +197,8 @@ const HomeScreen = () => {
   // Optimized biomass data fetching with caching and loading state
   const fetchBiomassData = useCallback(async (truckNo: string) => {
     if (!truckNo || truckNo === "Select Truck Number") return;
+
+    apiCache.delete(`biomass-${truckNo}`);
 
     setLoadingTruckData(true);
     try {
@@ -217,10 +236,10 @@ const HomeScreen = () => {
           }))
         );
 
-        setAlertMessage("Existing data loaded for this truck");
-        setAlertType("info");
-        setAlertVisible(true);
-        setTimeout(() => setAlertVisible(false), 3000);
+        addInfo(`Existing data loaded for truck ${truckNo}`);
+        // setAlertType("info");
+        // setAlertVisible(true);
+        // setTimeout(() => setAlertVisible(false), 3000);
         
         setIsUpdateMode(true);
       } else {
@@ -229,13 +248,14 @@ const HomeScreen = () => {
         setIsUpdateMode(false);
       }
     } catch (err) {
-      console.error('Error fetching biomass data:', err);
+      // console.error('Error fetching biomass data:', err);
       resetFormForNewTruck(truckNo);
-      setAlertMessage("No existing data for this truck");
-      setAlertType("error");
-      setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 3000);
+      // setAlertMessage("No existing data for this truck");
+      // setAlertType("error");
+      // setAlertVisible(true);
+      // setTimeout(() => setAlertVisible(false), 3000);
       setIsUpdateMode(false);
+      // setLoadingTruckData(false);
     } finally {
       setLoadingTruckData(false);
     }
@@ -283,45 +303,95 @@ const HomeScreen = () => {
     { key: '2', value: 'MANUAL' },
   ], []);
 
-  const handleChange = useCallback((field: any, val: any) => {
-    if (field === "truckNumber" && val && val !== "Select Truck Number") {
-      // Reset state immediately for better UX
-      setFormData({
-        truckNumber: val,
-        samplingAgency: "",
-        supervisorName: "",
-        bagsCollected: "",
-        sealNumbers: [],
-        samplingMode: "Select Sampling Mode",
-        samplingDateTime: new Date(),
-      });
-      setSupervisor("");
-      setSampler("");
-      setBoxes([]);
-      // fetchBiomassData will be called by useEffect due to debounced value change
-    } else {
-      setFormData(prev => ({ ...prev, [field]: val }));
-    }
-  }, []);
+// Replace your existing handleChange with this:
+const handleChange = useCallback((field: any, val: any) => {
+  if (field === "truckNumber" && val && val !== "Select Truck Number") {
+    // Reset state immediately for better UX
+    setFormData({
+      truckNumber: val,
+      samplingAgency: "",
+      supervisorName: "",
+      bagsCollected: "",
+      sealNumbers: [],
+      samplingMode: "Select Sampling Mode",
+      samplingDateTime: new Date(),
+    });
+    setSupervisor("");
+    setSampler("");
+    setBoxes([]);
+  } else if (field === "bagsCollected") {
+    const newCount = Number(val) || 0;
+    
+    setFormData(prev => ({ ...prev, [field]: val }));
+    
+    setBoxes(currentBoxes => {
+      let updatedBoxes;
+      
+      if (newCount === 0) {
+        setFormData(prev => ({ ...prev, sealNumbers: [] }));
+        return currentBoxes; // Keep existing data in memory
+      } else if (newCount <= 100) {
+        if (currentBoxes.length < newCount) {
+          // Auto-increment bag numbers for new boxes
+          let nextBagNumber;
+          
+          if (currentBoxes.length === 0) {
+            // Start from 1 for completely new form
+            nextBagNumber = 1;
+          } else {
+            // Find the highest existing bag number and continue from there
+            const existingBagNumbers = currentBoxes
+              .map(box => Number(box.bagNo) || 0)
+              .filter(num => num > 0);
+            
+            nextBagNumber = existingBagNumbers.length > 0 
+              ? Math.max(...existingBagNumbers) + 1 
+              : 1;
+          }
+          
+          // Create new boxes with auto-incremented bag numbers
+          const additionalBoxes = Array.from({ 
+            length: newCount - currentBoxes.length 
+          }, (_, index) => ({
+            bagNo: String(nextBagNumber + index),
+            seal: '' // Keep seal empty for user input
+          }));
+          
+          updatedBoxes = [...currentBoxes, ...additionalBoxes];
+        } else {
+          // We have enough or more boxes, keep all existing data
+          updatedBoxes = currentBoxes;
+        }
+        
+        // Only include first 'newCount' boxes for validation/submission
+        const sealNumbersForSubmission = updatedBoxes.slice(0, newCount);
+        setFormData(prev => ({ ...prev, sealNumbers: sealNumbersForSubmission }));
+        
+        return updatedBoxes;
+      } else {
+        // Count > 100, don't change anything
+        return currentBoxes;
+      }
+    });
+  } else {
+    setFormData(prev => ({ ...prev, [field]: val }));
+  }
+}, []);
+
+// Keep the TextInput handler simple:
+const handleBagsCollectedChange = useCallback((text: string) => {
+  handleChange("bagsCollected", text);
+}, [handleChange]);
 
   const updateSupervisorName = useCallback((sup: string, sam: string) => {
     const fullName = `${sup},${sam}`;
     setFormData((prev) => ({ ...prev, supervisorName: fullName }));
   }, []);
 
-  // Alert state
-  const [alertVisible, setAlertVisible] = useState<boolean>(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState<'info' | 'error' | 'success'>('info');
-
   // Screen dimensions
   const height = useWindowDimensions().height;
   const width = useWindowDimensions().width;
   const isLandScape = width > height;
-
-  const handleVisible = useCallback(() => {
-    setAlertVisible(false);
-  }, []);
 
   const formatToSAPDateTime = useCallback((date: Date) => {
     const pad = (n: number) => n.toString().padStart(2, "0");
@@ -368,6 +438,7 @@ const HomeScreen = () => {
       
       // Clear cache when returning to screen to ensure fresh data
       apiCache.clear();
+      clearAllAlerts();
     }, [])
   );
 
@@ -394,21 +465,35 @@ const HomeScreen = () => {
     setSupervisor("");
     setBiomassData(biomassDefault);
     setIsUpdateMode(false);
-  }, []);
+    clearAllAlerts();
+    // addInfo("Form cleared successfully");
+    apiCache.delete('biomass-data');
+  }, [clearAllAlerts, addInfo]);
 
   // Optimized submit with better error handling
-  const handleSubmit = useCallback(async () => {
-    if (!formData.samplingDateTime) return;
+  // Fixed handleSubmit function
+const handleSubmit = useCallback(async () => {
+  if (!formData.samplingDateTime) return;
 
-    const result = formValidaty(formData, supervisor, sampler, boxes);
-    if (!result.valid) {
-      setAlertMessage(result.message || "Please enter all required fields");
-      setAlertType("error");
-      setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 5000); 
+  // Get the actual bag count from the form
+  const actualBagCount = Number(formData.bagsCollected) || 0;
+  
+  // Only use the first 'actualBagCount' boxes for validation and submission
+  const boxesToValidate = boxes.slice(0, actualBagCount);
+  
+  const result = formValidaty(formData, supervisor, sampler, boxesToValidate);
+  if (!result.valid) {
+    if (result.missingFields && result.missingFields.length > 0) {
+      result.missingFields.forEach((field, index) => {
+        // Stagger the alerts slightly to show them nicely
+        setTimeout(() => {
+          addError(`Please enter: ${field}`);
+        }, index * 150);
+      });
 
-      if (result.missingFields) {
-        const firstField = result.missingFields[0].toLowerCase();
+      // Focus on the first missing field
+      const firstField = result.missingFields[0].toLowerCase();
+      setTimeout(() => {
         if (firstField.includes('sampling agency')) {
           samplingAgencyRef.current?.focus();
         } else if (firstField.includes('supervisor')) {
@@ -418,12 +503,16 @@ const HomeScreen = () => {
         } else if (firstField.includes('bags collected')) {
           bagsCollectedRef.current?.focus();
         }
-      }
-      
-      return;
+      }, 500);
     }
+    
+    //return; //--- it will continue for submission
+  }
 
-    const cleanedBoxes = boxes.map(({ bagNo, seal }) => ({
+  // CRITICAL FIX: Only submit the first 'actualBagCount' boxes
+  const cleanedBoxes = boxesToValidate
+    .filter(box => box.bagNo && box.seal) // Only include boxes with both bag number and seal
+    .map(({ bagNo, seal }) => ({
       zmode: "BIOMASS",
       rakE_OR_TRUCK_NO: formData.truckNumber,
       baG_NO: String(bagNo),
@@ -431,56 +520,74 @@ const HomeScreen = () => {
       entrY_BY: user?.fullname || "User"
     }));
 
-    const payload = {
-      t_COAL_SAMPLING: [],
-      t_BIO_SAMPLING: [
-        {
-          slno: "1",
-          trucK_NO: formData.truckNumber,
-          samplinG_DT: SapSampleDateTime.date,
-          samplinG_TM: SapSampleDateTime.time,
-          totaL_TRUCKS: "1",
-          samplE_AGENCY: formData.samplingAgency,
-          supervisor,
-          sampler,
-          nO_OF_BAGS_COL: formData.bagsCollected,
-          samplinG_MODE: formData.samplingMode,
-          createD_BY: user?.fullname || "User",
-        }
-      ],
-      t_CAOL_BIO_BAGS_TBL: cleanedBoxes,
-      t_RAKE_NO: [],
-      t_REGNO: [],
-      t_DROPDOWN_DATA: []
-    };
+  console.log('Debug - Submitting data:');
+  console.log('Actual bag count:', actualBagCount);
+  console.log('Boxes to validate:', boxesToValidate.length);
+  console.log('Cleaned boxes for submission:', cleanedBoxes.length);
+  console.log('Cleaned boxes:', cleanedBoxes);
 
-    try {
-      const { data } = await axios.post(
-        `${baseurl}/Sampling/PTYPE/BIOMASS`,
-        payload,
-        { headers: { "Content-Type": "application/json" } }
-      );
+  const payload = {
+    t_COAL_SAMPLING: [],
+    t_BIO_SAMPLING: [
+      {
+        slno: "1",
+        trucK_NO: formData.truckNumber,
+        samplinG_DT: SapSampleDateTime.date,
+        samplinG_TM: SapSampleDateTime.time,
+        totaL_TRUCKS: "1",
+        samplE_AGENCY: formData.samplingAgency,
+        supervisor,
+        sampler,
+        nO_OF_BAGS_COL: String(actualBagCount), // Use actual bag count, not cleaned boxes length
+        samplinG_MODE: formData.samplingMode,
+        createD_BY: user?.fullname || "User",
+      }
+    ],
+    t_CAOL_BIO_BAGS_TBL: cleanedBoxes, // Only valid boxes within the count
+    t_RAKE_NO: [],
+    t_REGNO: [],
+    t_DROPDOWN_DATA: []
+  };
 
-      console.log("Submission success:", data);
-      
-      setAlertMessage("Biomass Sampling Report submitted successfully");
-      setAlertType("success");
-      setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 2000);
+  console.log('Final payload:', JSON.stringify(payload, null, 2));
 
-      // Clear cache after successful submission to ensure fresh data on next load
-      apiCache.delete('biomass-data');
-      
-      // Reset form state
+  try {
+    addInfo("Submitting biomass sampling data...", { showCloseButton: false });
+
+    const { data } = await axios.post(
+      `${baseurl}/Sampling/PTYPE/BIOMASS`,
+      payload,
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    console.log("Submission success:", data);
+    
+    addSuccess(`Biomass Sampling Report ${isUpdateMode ? 'updated' : 'submitted'} successfully!`);
+    // addInfo(`Truck ${formData.truckNumber} - ${actualBagCount} bags processed`);
+
+    // Clear cache after successful submission to ensure fresh data on next load
+    apiCache.delete('biomass-data');
+    apiCache.delete(`biomass-${formData.truckNumber}`);
+    
+    setTimeout(() => {
       resetForm();
-    } catch (err) {
-      console.error("Error submitting data:", err);
-      setAlertMessage("Failed to submit data. Please try again.");
-      setAlertType("error");
-      setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 2000);
+    }, 3000);
+  } catch (err) {
+    console.error("Error submitting data:", err);
+    
+    addError(`Failed to submit data. Please try again.`);
+
+    if (axios.isAxiosError(err)) {
+      if (err.response?.status === 400) {
+        addWarning("Invalid data format. Please check your inputs.");
+      } else if (err.response?.status === 500) {
+        addError("Server error. Please contact support if issue persists.");
+      } else if (err.code === 'NETWORK_ERROR') {
+        addWarning("Network connection issue. Please check your internet.");
+      }
     }
-  }, [formData, supervisor, sampler, boxes, SapSampleDateTime, user, baseurl, resetForm]);
+  }
+}, [formData, supervisor, sampler, boxes, SapSampleDateTime, user, baseurl, resetForm, addError, addSuccess, addInfo, addWarning, isUpdateMode]);
 
   const [isTruckVisible, setIsTruckVisible] = useState(false);
   const [isSamplingModeVisible, setIsSamplingModeVisible] = useState(false);
@@ -563,6 +670,8 @@ const HomeScreen = () => {
                       }
                       style={styles.input}
                       mode="outlined"
+                      onSubmitEditing={() => supervisorRef.current?.focus()}
+                      returnKeyType='next'
                     />
 
                     <TextInput
@@ -575,6 +684,8 @@ const HomeScreen = () => {
                       }}
                       style={styles.input}
                       mode="outlined"
+                      onSubmitEditing={() => samplerRef.current?.focus()}
+                      returnKeyType='next'
                     />
 
                     <TextInput
@@ -587,20 +698,21 @@ const HomeScreen = () => {
                       }}
                       style={styles.input}
                       mode="outlined"
+                      onSubmitEditing={() => bagsCollectedRef.current?.focus()}
+                      returnKeyType='next'
                     />
 
                     <TextInput
                       ref={bagsCollectedRef}
                       label="Number of Bags Collected"
                       value={formData.bagsCollected}
-                      onChangeText={(text: string) => {
-                        setFormData({ ...formData, bagsCollected: text });
-                      }}
+                      onChangeText={handleBagsCollectedChange}
                       keyboardType="numeric"
                       style={styles.input}
                       mode="outlined"
                       placeholderTextColor={"#000"}
                       theme={{ colors: { text: '#000' } }}
+                      returnKeyType='next'
                     />
 
                     {Number(formData?.bagsCollected) > 100 && (
@@ -619,7 +731,11 @@ const HomeScreen = () => {
                       boxes={boxes}
                       setBoxes={(updated: BoxData[]) => {
                         setBoxes(updated);
-                        setFormData((prev) => ({ ...prev, sealNumbers: updated }));
+                        
+                        // Update sealNumbers based on the current bag count, not all boxes
+                        const currentBagCount = Number(formData.bagsCollected) || 0;
+                        const sealNumbersForSubmission = updated.slice(0, currentBagCount);
+                        setFormData((prev) => ({ ...prev, sealNumbers: sealNumbersForSubmission }));
                       }}
                       number={Number(formData?.bagsCollected) || 0}
                     />
@@ -668,11 +784,11 @@ const HomeScreen = () => {
             </TouchableWithoutFeedback>
 
             <LoadingModal 
-              visible={loadingTruckData} 
+              visible={loadingTruckData || loadingTrucks} 
               message="Loading Truck data..."
             />
 
-            <AlertMessage
+            {/* <AlertMessage
               key={alertMessage + alertVisible}
               visible={alertVisible}
               message={alertMessage}
@@ -680,6 +796,15 @@ const HomeScreen = () => {
               onDismiss={() => setAlertVisible(false)}
               isLandScape={isLandScape}
               handleVisible={handleVisible}
+            /> */}
+
+            <AlertSystem
+              alerts={alerts}
+              onDismiss={removeAlert}
+              position="top"
+              maxVisible={4}
+              stackVertically={true}
+              isLandScape={isLandScape}
             />
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -797,11 +922,12 @@ const styles = StyleSheet.create({
 
 export default HomeScreen;
 
+// Updated formValidaty function - now takes boxesToValidate as parameter
 export function formValidaty(
   formData: any, 
   supervisor: string, 
   sampler: string, 
-  boxes: BoxData[]
+  boxesToValidate: BoxData[] // Changed from boxes to boxesToValidate
 ): { 
   valid: boolean; 
   message?: string;
@@ -847,14 +973,9 @@ export function formValidaty(
     missingFields.push("Sampling Mode");
   }
 
-  // Enhanced bag and seal validation
+  // Enhanced bag and seal validation using the correct number of boxes
   if (bagsCount > 0 && bagsCount <= 100) {
-    // Check if we have the right number of bag entries
-    if (boxes.length !== bagsCount) {
-      missingFields.push(`Expected ${bagsCount} bags, but found ${boxes.length} bag entries`);
-    }
-
-    // Check each box for missing or invalid data
+    // Validate only the boxes that should be submitted
     const emptySeals: number[] = [];
     const emptyBags: number[] = [];
     const duplicateSeals: string[] = [];
@@ -862,7 +983,7 @@ export function formValidaty(
     const seenSeals = new Set<string>();
     const seenBags = new Set<string>();
 
-    boxes.forEach((box, index) => {
+    boxesToValidate.forEach((box, index) => {
       // Check for empty or missing bag numbers
       if (!box.bagNo || String(box.bagNo).trim() === "") {
         emptyBags.push(index + 1);
@@ -907,9 +1028,9 @@ export function formValidaty(
       missingFields.push(`Duplicate seal numbers found: ${[...new Set(duplicateSeals)].join(', ')}`);
     }
 
-    // Check if no bags/seals provided when bags count > 0
-    if (boxes.length === 0 && bagsCount > 0) {
-      missingFields.push("Please add bag and seal number entries");
+    // Check if we have the right number of valid boxes
+    if (boxesToValidate.length < bagsCount) {
+      missingFields.push(`Expected ${bagsCount} bags but only found ${boxesToValidate.length} entries`);
     }
   }
 
@@ -932,23 +1053,22 @@ export function formValidaty(
 export const validateBagsAndSeals = (currentBoxes: BoxData[], expectedCount: number) => {
   const issues: string[] = [];
   
-  if (currentBoxes.length !== expectedCount && expectedCount > 0) {
-    issues.push(`Expected ${expectedCount} entries, found ${currentBoxes.length}`);
-  }
+  // Only validate the boxes within the expected count to avoid showing issues for extra empty entries
+  const boxesToValidate = expectedCount > 0 ? currentBoxes.slice(0, expectedCount) : [];
   
-  const emptySeals = currentBoxes.filter(box => !box.seal || String(box.seal).trim() === "");
+  const emptySeals = boxesToValidate.filter(box => !box.seal || String(box.seal).trim() === "");
   if (emptySeals.length > 0) {
     issues.push(`${emptySeals.length} entry(s) missing seal numbers`);
   }
   
-  const emptyBags = currentBoxes.filter(box => !box.bagNo || String(box.bagNo).trim() === "");
+  const emptyBags = boxesToValidate.filter(box => !box.bagNo || String(box.bagNo).trim() === "");
   if (emptyBags.length > 0) {
     issues.push(`${emptyBags.length} entry(s) missing bag numbers`);
   }
   
-  // Check for duplicates
-  const seals = currentBoxes.map(box => String(box.seal).trim()).filter(seal => seal !== "");
-  const bags = currentBoxes.map(box => String(box.bagNo).trim()).filter(bag => bag !== "");
+  // Check for duplicates only in the boxes we're validating
+  const seals = boxesToValidate.map(box => String(box.seal).trim()).filter(seal => seal !== "");
+  const bags = boxesToValidate.map(box => String(box.bagNo).trim()).filter(bag => bag !== "");
   
   const duplicateSeals = seals.filter((seal, index) => seals.indexOf(seal) !== index);
   const duplicateBags = bags.filter((bag, index) => bags.indexOf(bag) !== index);

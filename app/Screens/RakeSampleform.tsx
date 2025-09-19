@@ -1057,6 +1057,7 @@ import dayjs from "dayjs";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "@/context/AuthContext";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import AlertSystem, { useAlerts } from "@/components/Cards/AlertSystem";
 
 const initialFormData = {
   clientName: "TALWANDI SABO POWER LIMITED, TALWANDI",
@@ -1101,6 +1102,17 @@ const LoadingModal = ({ visible, message }: { visible: boolean; message: string 
 export default function RakeSampleForm() {
   
   const { user } = useAuth();
+  
+  const { 
+    alerts, 
+    addAlert, 
+    removeAlert, 
+    addSuccess, 
+    addError, 
+    addInfo, 
+    addWarning,
+    clearAllAlerts 
+  } = useAlerts();
 
   const Api_Base = process.env.EXPO_PUBLIC_BASE_URL;
 
@@ -1290,8 +1302,9 @@ export default function RakeSampleForm() {
       } catch (err) {
         if (isMounted && !axios.isCancel(err)) {
           console.error("API fetch error", err);
-          setAlertMessage("Failed to load dropdown data");
-          setAlertType("error");
+          // setAlertMessage("Failed to load dropdown data");
+          // setAlertType("error");
+          addError("Failed to load dropdown data");
         }
       } finally {
         if (isMounted) {
@@ -1376,6 +1389,7 @@ export default function RakeSampleForm() {
     setRUnloadDateTime(new Date());
     setRakeCompleteDT(new Date());
     setIsUpdateMode(false);
+    addInfo("All Fields Cleared");
   };
 
   useFocusEffect(
@@ -1444,10 +1458,12 @@ export default function RakeSampleForm() {
         setRUnloadDateTime(commence);
         setRakeCompleteDT(complete);
 
-        setAlertMessage("Existing data loaded for this Coal Sampling");
-        setAlertType("info");
-        setAlertVisible(true);
-        setTimeout(() => setAlertVisible(false), 3000);
+        // setAlertMessage("Existing data loaded for this Coal Sampling");
+        // setAlertType("info");
+        // setAlertVisible(true);
+        // setTimeout(() => setAlertVisible(false), 3000);
+
+        addSuccess(`Existing data loaded for ${rakeId}`)
 
         setIsUpdateMode(true);
       } else {
@@ -1484,10 +1500,10 @@ export default function RakeSampleForm() {
         setRakeCompleteDT(new Date());
 
         setIsUpdateMode(false);
-        setAlertMessage("No existing data. Enter new record.");
-        setAlertType("info");
-        setAlertVisible(true);
-        setTimeout(() => setAlertVisible(false), 3000);
+        // setAlertMessage("No existing data. Enter new record.");
+        // setAlertType("info");
+        // setAlertVisible(true);
+        // setTimeout(() => setAlertVisible(false), 3000);
       }
     } catch (error) {
       if (!axios.isCancel(error)) {
@@ -1527,10 +1543,11 @@ export default function RakeSampleForm() {
         setRakeCompleteDT(new Date());
 
         setIsUpdateMode(false);
-        setAlertMessage("No existing data. Enter new record.");
-        setAlertType("info");
-        setAlertVisible(true);
-        setTimeout(() => setAlertVisible(false), 3000);
+        // setAlertMessage("No existing data. Enter new record.");
+        // setAlertType("info");
+        // setAlertVisible(true);
+        // setTimeout(() => setAlertVisible(false), 3000);
+        // addError("Data not found")
       }
     } finally {
       setRakeDataLoading(false);
@@ -1651,42 +1668,57 @@ export default function RakeSampleForm() {
   };
 
   const handleSubmit = async () => {
+    const actualBagCount = Number(formData.noOfBagsCollected) || 0;
+  
+    // Only use the first 'actualBagCount' boxes for validation and submission
+    const boxesToValidate = boxes.slice(0, actualBagCount);
+
     // Validate form first
-    const { missingFields, fieldRefs } = validateForm();
-    
-    if (missingFields.length > 0) {
-      const errorMessage = missingFields.length > 5 
-        ? `Please fix the following issues:\n\n• ${missingFields.slice(0, 5).join('\n• ')}\n\n...and ${missingFields.length - 5} more issues`
-        : `Please fix the following issues:\n\n• ${missingFields.join('\n• ')}`;
+    if (!formValidaty(formData)) {
+      // Get detailed validation errors using the validateForm function
+      const { missingFields, fieldRefs } = validateForm();
       
-      setAlertMessage(errorMessage);
-      setAlertType("error");
-      setAlertVisible(true);
-      
-      // Focus on the first missing field (if it's a basic field, not bag/seal related)
-      const firstMissingField = missingFields[0].toLowerCase().replace(/\s+/g, '');
-      const fieldMap: {[key: string]: string} = {
-        'rakeno': 'rakeNo',
-        'commodity': 'commodity',
-        'noofbagscollected': 'noOfBagsCollected',
-        'samplingagency': 'samplingAgency',
-        'supervisor': 'supervisor',
-        'samplers': 'samplers',
-        'remarks': 'remarks',
-        'noofwagons': 'noOfWagons',
-        'autosampler': 'autoSampler'
-      };
-      
-      const fieldKey = fieldMap[firstMissingField];
-      if (fieldKey && fieldRefs[fieldKey]) {
-        fieldRefs[fieldKey].current?.focus();
-        scrollToInput(fieldRefs[fieldKey]);
-      } else if (firstMissingField.includes('seal') || firstMissingField.includes('bag')) {
-        // If the error is related to bags/seals, scroll to the bags section
-        scrollToInput(noOfBagsRef);
+      if (missingFields.length > 0) {
+        // Display each missing field as a separate error alert with staggered timing
+        missingFields.forEach((field, index) => {
+          setTimeout(() => {
+            addError(`Please enter: ${field}`);
+          }, index * 150);
+        });
+
+        // Focus on the first missing field
+        const firstMissingField = missingFields[0].toLowerCase();
+        setTimeout(() => {
+          if (firstMissingField.includes('rake no')) {
+            rakeNoRef.current?.focus();
+            scrollToInput(rakeNoRef);
+          } else if (firstMissingField.includes('commodity')) {
+            commodityRef.current?.focus();
+            scrollToInput(commodityRef);
+          } else if (firstMissingField.includes('bags collected')) {
+            noOfBagsRef.current?.focus();
+            scrollToInput(noOfBagsRef);
+          } else if (firstMissingField.includes('sampling agency')) {
+            samplingAgencyRef.current?.focus();
+            scrollToInput(samplingAgencyRef);
+          } else if (firstMissingField.includes('supervisor')) {
+            supervisorRef.current?.focus();
+            scrollToInput(supervisorRef);
+          } else if (firstMissingField.includes('samplers')) {
+            samplersRef.current?.focus();
+            scrollToInput(samplersRef);
+          } else if (firstMissingField.includes('remarks')) {
+            remarksRef.current?.focus();
+            scrollToInput(remarksRef);
+          } else if (firstMissingField.includes('wagons')) {
+            noOfWagonsRef.current?.focus();
+            scrollToInput(noOfWagonsRef);
+          } else if (firstMissingField.includes('seal') || firstMissingField.includes('bag')) {
+            // If the error is related to bags/seals, scroll to the bags section
+            scrollToInput(noOfBagsRef);
+          }
+        }, 500);
       }
-      
-      return;
     }
 
     let plantDate = "";
@@ -1699,7 +1731,9 @@ export default function RakeSampleForm() {
     }
 
     try {
-      const cleanedBoxes = boxes.map(({ bagNo, seal }) => ({
+      const cleanedBoxes = boxesToValidate
+      .filter(box => box.bagNo && box.seal)
+      .map(({ bagNo, seal }) => ({
         zmode: "COAL",
         rakE_OR_TRUCK_NO: formData.rakeNo,
         baG_NO: String(bagNo),
@@ -1771,48 +1805,44 @@ export default function RakeSampleForm() {
       console.log("Payload:", JSON.stringify(payload, null, 2));
 
       const response = await axios.post(
-        "https://tsplindia.info/TSPLSAMPLING/api/Sampling/PTYPE/COAL",
+        `${Api_Base}/Sampling/PTYPE/COAL`,
         payload,
         { headers: { "Content-Type": "application/json" } }
       );
 
-      console.log("API Response:", response.data);
-
-      setAlertMessage("Data submitted successfully");
-      setAlertType("success");
-      setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 3000);
+      addSuccess(`Biomass Sampling Report ${isUpdateMode ? 'updated' : 'submitted'} successfully!`);
+      setTimeout(() => {
+        resetForm();
+      }, 3000);
     } catch (error: any) {
       console.error("Error submitting data:", error);
-      setAlertMessage(error.response?.data?.message || "Failed to submit data");
-      setAlertType("error");
-      setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 3000);
+      addError(`Failed to submit data. Please try again.`);
+
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+          addWarning("Invalid data format. Please check your inputs.");
+        } else if (error.response?.status === 500) {
+          addError("Server error. Please contact support if issue persists.");
+        } else if (error.code === 'NETWORK_ERROR') {
+          addWarning("Network connection issue. Please check your internet.");
+        }
+      }
     }
   };
 
-  const validateBagsAndSeals = (currentBoxes: BoxData[], expectedCount: number) => {
-    const issues: string[] = [];
+  const BagValidationDisplay = ({ boxes, expectedCount }: { boxes: BoxData[], expectedCount: number }) => {
+    const issues = validateBagsAndSeals(boxes, expectedCount);
     
-    if (currentBoxes.length !== expectedCount) {
-      issues.push(`Expected ${expectedCount} bags, found ${currentBoxes.length}`);
-    }
+    if (issues.length === 0) return null;
     
-    const emptySeals = currentBoxes.filter((box, index) => !box.seal || String(box.seal).trim() === "");
-    if (emptySeals.length > 0) {
-      issues.push(`${emptySeals.length} bag(s) missing seal numbers`);
-    }
-    
-    const seals = currentBoxes.map(box => String(box.seal).trim()).filter(seal => seal !== "");
-    const duplicates = seals.filter((seal, index) => seals.indexOf(seal) !== index);
-    if (duplicates.length > 0) {
-      issues.push(`Duplicate seal numbers: ${[...new Set(duplicates)].join(', ')}`);
-    }
-    
-    return issues;
+    return (
+      <View style={styles.validationContainer}>
+        {issues.map((issue, index) => (
+          <Text key={index} style={styles.validationText}>⚠️ {issue}</Text>
+        ))}
+      </View>
+    );
   };
-
-  const bagValidationIssues = validateBagsAndSeals(boxes, formData.noOfBagsCollected);
 
   let colorScheme = useColorScheme();
   const theme = useTheme();
@@ -1993,16 +2023,12 @@ export default function RakeSampleForm() {
                 <NoOfTwoBoxComponent number={formData?.noOfBagsCollected} boxes={boxes} setBoxes={setBoxes} />
               )}
 
-              {formData.noOfBagsCollected > 0 && (() => {
-                const issues = validateBagsAndSeals(boxes, formData.noOfBagsCollected);
-                return issues.length > 0 ? (
-                  <View style={styles.validationContainer}>
-                    {issues.map((issue, index) => (
-                      <Text key={index} style={styles.validationText}>⚠️ {issue}</Text>
-                    ))}
-                  </View>
-                ) : null;
-              })()}
+              {Number(formData?.noOfBagsCollected) > 0 && Number(formData?.noOfBagsCollected) <= 100 && (
+                <BagValidationDisplay 
+                  boxes={boxes} 
+                  expectedCount={Number(formData.noOfBagsCollected)} 
+                />
+              )}
 
               <TextInput
                 ref={noOfWagonsRef}
@@ -2172,7 +2198,7 @@ export default function RakeSampleForm() {
         message="Loading rake data..."
       />
 
-      <AlertMessage
+      {/* <AlertMessage
         key={alertMessage + alertVisible}
         visible={alertVisible}
         message={alertMessage}
@@ -2180,7 +2206,16 @@ export default function RakeSampleForm() {
         onDismiss={() => setAlertVisible(false)}
         isLandScape={isLandScape}
         handleVisible={handleVisible}
-      />
+      /> */}
+
+            <AlertSystem
+              alerts={alerts}
+              onDismiss={removeAlert}
+              position="top"
+              maxVisible={4}
+              stackVertically={true}
+              isLandScape={isLandScape}
+            />
         </KeyboardAvoidingView>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -2347,3 +2382,38 @@ export function formValidaty(formData: any): boolean {
 
   return true;
 }
+
+
+export const validateBagsAndSeals = (currentBoxes: BoxData[], expectedCount: number) => {
+  const issues: string[] = [];
+  
+  // Only validate the boxes within the expected count to avoid showing issues for extra empty entries
+  const boxesToValidate = expectedCount > 0 ? currentBoxes.slice(0, expectedCount) : [];
+  
+  const emptySeals = boxesToValidate.filter(box => !box.seal || String(box.seal).trim() === "");
+  if (emptySeals.length > 0) {
+    issues.push(`${emptySeals.length} entry(s) missing seal numbers`);
+  }
+  
+  const emptyBags = boxesToValidate.filter(box => !box.bagNo || String(box.bagNo).trim() === "");
+  if (emptyBags.length > 0) {
+    issues.push(`${emptyBags.length} entry(s) missing bag numbers`);
+  }
+  
+  // Check for duplicates only in the boxes we're validating
+  const seals = boxesToValidate.map(box => String(box.seal).trim()).filter(seal => seal !== "");
+  const bags = boxesToValidate.map(box => String(box.bagNo).trim()).filter(bag => bag !== "");
+  
+  const duplicateSeals = seals.filter((seal, index) => seals.indexOf(seal) !== index);
+  const duplicateBags = bags.filter((bag, index) => bags.indexOf(bag) !== index);
+  
+  if (duplicateSeals.length > 0) {
+    issues.push(`Duplicate seal numbers: ${[...new Set(duplicateSeals)].join(', ')}`);
+  }
+  
+  if (duplicateBags.length > 0) {
+    issues.push(`Duplicate bag numbers: ${[...new Set(duplicateBags)].join(', ')}`);
+  }
+  
+  return issues;
+};

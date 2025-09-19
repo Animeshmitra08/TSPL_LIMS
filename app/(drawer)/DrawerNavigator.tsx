@@ -79,7 +79,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           ),
           headerBackground: () => (
             <LinearGradient
-              colors={["#276dbdff", "#193b86ff"]}
+              colors={["#193b86ff", "#276dbdff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{ flex: 1 }}
@@ -106,7 +106,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           ),
           headerBackground: () => (
             <LinearGradient
-              colors={["#276dbdff", "#193b86ff"]}
+              colors={["#193b86ff", "#276dbdff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{ flex: 1 }}
@@ -133,7 +133,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           ),
           headerBackground: () => (
             <LinearGradient
-              colors={["#ec905bff", "#eb6a2eff"]}
+              colors={["#eb6a2eff", "#ec905bff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{ flex: 1 }}
