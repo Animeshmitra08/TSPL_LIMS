@@ -33,7 +33,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
     <Drawer.Navigator
       screenOptions={{
         headerShown: true,
-        drawerHideStatusBarOnOpen: true,
+        drawerHideStatusBarOnOpen: false,
         drawerStyle: {
           backgroundColor: colorScheme === "dark" ? "#1a1a1a" : "#f8f9fa",
           borderTopRightRadius: 25,
@@ -79,7 +79,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           ),
           headerBackground: () => (
             <LinearGradient
-              colors={["#276dbdff", "#193b86ff"]}
+              colors={["#193b86ff", "#276dbdff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{ flex: 1 }}
@@ -106,7 +106,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           ),
           headerBackground: () => (
             <LinearGradient
-              colors={["#276dbdff", "#193b86ff"]}
+              colors={["#193b86ff", "#276dbdff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{ flex: 1 }}
@@ -133,7 +133,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           ),
           headerBackground: () => (
             <LinearGradient
-              colors={["#ec905bff", "#eb6a2eff"]}
+              colors={["#eb6a2eff", "#ec905bff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{ flex: 1 }}
@@ -212,7 +212,7 @@ function CustomDrawer(props: any) {
           </View>
           
           <View style={styles.userInfo}>
-            <Text style={styles.welcomeText}>Welcome back!</Text>
+            <Text style={styles.welcomeText}>Welcome</Text>
             <Text style={styles.emailText} numberOfLines={1}>
               {user?.emailid || "Guest User"}
             </Text>
@@ -260,7 +260,7 @@ function CustomDrawer(props: any) {
           <Text style={[styles.versionText, {
             color: colorScheme === "dark" ? "#666" : "#999"
           }]}>
-            Version 1.0.0
+            Version 2.1.0
           </Text>
         </View>
       </View>
