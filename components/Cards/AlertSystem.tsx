@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions, Animated, ScrollView } from 'react-native';
+import { StyleSheet, View, useWindowDimensions, Animated } from 'react-native';
 import { Card, IconButton, Text } from 'react-native-paper';
 
 type AlertType = 'success' | 'error' | 'info' | 'warning';

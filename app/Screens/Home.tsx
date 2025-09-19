@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableWithoutFeedback,
@@ -114,6 +115,8 @@ const HomeScreen = () => {
     clearAllAlerts 
   } = useAlerts();
 
+  const [refreshing, setRefreshing] = useState(false);
+
   // Debounce truck selection to avoid rapid API calls
   const debouncedTruckNumber = useDebounce(formData.truckNumber, 300);
 
@@ -185,10 +188,7 @@ const HomeScreen = () => {
       }
     } catch (err) {
       console.error('Failed to fetch truck data', err);
-      // Show user-friendly error message
-      // setAlertMessage("Failed to load truck data. Please try again.");
-      // setAlertType("error");
-      // setAlertVisible(true);
+      addError("Failed to fetch truck data");
     } finally {
       setLoadingTrucks(false);
     }
@@ -442,6 +442,15 @@ const handleBagsCollectedChange = useCallback((text: string) => {
     }, [])
   );
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    Promise.all([
+      fetchTruckData(), 
+      resetForm() 
+    ])
+    .finally(() => setRefreshing(false));
+  }, []);
+
   const isFormEmpty = useMemo(() => 
     JSON.stringify(biomassData) === JSON.stringify(biomassDefault) &&
     boxes.length === 0 &&
@@ -620,7 +629,12 @@ const handleSubmit = useCallback(async () => {
             keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 100}
           >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <ScrollView contentContainerStyle={styles.container}>
+              <ScrollView contentContainerStyle={styles.container}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>
+              }
+              keyboardShouldPersistTaps="handled"
+              >
                 <Card style={styles.card}>
                   <Card.Content>
                     <SelectComponentBYFORM

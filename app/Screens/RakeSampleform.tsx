@@ -2,7 +2,7 @@ import AlertMessage from "@/components/Cards/AlertMessage";
 import DateTimeComponent from "@/components/DateTimeSelect";
 import { SelectComponentBYFORM } from "@/components/SelectComponent";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, useColorScheme, useWindowDimensions, View } from "react-native";
+import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, TouchableWithoutFeedback, useColorScheme, useWindowDimensions, View } from "react-native";
 import { ActivityIndicator, Button, Card, Text, TextInput, useTheme } from "react-native-paper";
 import NoOfTwoBoxComponent, { BoxData } from "./NoOfTwoBoxComponent";
 import axios from 'axios';
@@ -103,6 +103,8 @@ export default function RakeSampleForm() {
   const [loading, setLoading] = useState<boolean>(false);
   const [isUpdateMode, setIsUpdateMode] = useState(false);
 
+  const [refreshing, setRefreshing] = useState(false);
+
 
   const rakeNoRef = useRef<any>(null);
   const commodityRef = useRef<any>(null);
@@ -191,19 +193,12 @@ export default function RakeSampleForm() {
     }
   }, [rakeCompleteDT]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchDropdownData = async () => {
+  const fetchDropdownData = useCallback(async () => {
       setLoading(true);
       try {
-        const controller = new AbortController();
         const res = await axios.get(
-          `${Api_Base}/Sampling/POWERTYPE/COAL`,
-          {signal: controller.signal}
+          `${Api_Base}/Sampling/POWERTYPE/COAL`
         );
-
-        if (!isMounted) return;
 
         const data = res.data;
 
@@ -252,38 +247,27 @@ export default function RakeSampleForm() {
               }))
           );
         }
+
+        if (data?.tRakeNo?.length > 0) {
+          addInfo(`Loaded ${data.tRakeNo.length} rake numbers`, {duration: 500});
+        }
+        
       } catch (err) {
-        if (isMounted && !axios.isCancel(err)) {
           console.error("API fetch error", err);
-          // setAlertMessage("Failed to load dropdown data");
-          // setAlertType("error");
           addError("Failed to load dropdown data");
-        }
       } finally {
-        if (isMounted) {
           setLoading(false);
-        }
       }
-    };
+    },[Api_Base]);
 
+  useEffect(() => {
     fetchDropdownData();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
-  const [alertVisible, setAlertVisible] = useState<boolean>(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState<'info' | 'error' | 'success'>('info');
   // height and width calculate
   const height = useWindowDimensions().height;
   const width = useWindowDimensions().width;
   const isLandScape = width > height;
-  // Custom handle Close alert visible function
-  function handleVisible() {
-    setAlertVisible(false);
-  }
 
   const handleRakeNoChange = (selectedRakeId: string) => {
     setFormData((prev) => ({
@@ -620,6 +604,18 @@ export default function RakeSampleForm() {
     }
   };
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+
+    // 🔹 Call your reload logic here
+    // For example, refetch trucks, reset form, etc.
+    Promise.all([
+      fetchDropdownData(),
+      resetForm()
+    ])
+    .finally(() => setRefreshing(false));
+  }, []);
+
   const handleSubmit = async () => {
     const actualBagCount = Number(formData.noOfBagsCollected) || 0;
   
@@ -809,6 +805,9 @@ export default function RakeSampleForm() {
           ref={scrollViewRef}
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
+          }
         >
 
           {/* 1. Client & Rake Details */}

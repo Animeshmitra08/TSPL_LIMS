@@ -50,10 +50,15 @@ const DateTimeComponent = (
                     ? <DateTimePicker
                         value={date instanceof Date ? date : new Date()}
                         mode="datetime"
+                        themeVariant='light'
                         display="default"
                         onChange={(event, selectedDate) => {
                             setOpen(false);
                             if (selectedDate) setDate(selectedDate);
+                        }}
+                        style={{
+                            marginBottom: 8,
+                            marginTop: -5
                         }}
                     />
                     : <Modal
@@ -100,6 +105,7 @@ const DateTimeComponent = (
                                         value={new Date()}
                                         mode="date"
                                         display="default"
+                                        themeVariant='light'
                                         onChange={(event, selectedDate) => {
                                             if (selectedDate) {
                                                 setDate1(selectedDate);
@@ -114,6 +120,7 @@ const DateTimeComponent = (
                                         value={new Date()}
                                         mode="time"
                                         display="default"
+                                        themeVariant='light'
                                         onChange={(event, selectedDate) => {
                                             if (selectedDate) {
                                                 setTime1(selectedDate);
