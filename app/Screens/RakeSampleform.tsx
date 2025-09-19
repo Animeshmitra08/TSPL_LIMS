@@ -2194,7 +2194,7 @@ export default function RakeSampleForm() {
       </TouchableWithoutFeedback>
 
       <LoadingModal 
-        visible={rakeDataLoading} 
+        visible={rakeDataLoading || loading} 
         message="Loading rake data..."
       />
 

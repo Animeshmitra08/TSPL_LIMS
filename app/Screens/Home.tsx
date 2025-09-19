@@ -236,7 +236,7 @@ const HomeScreen = () => {
           }))
         );
 
-        addInfo(`Existing data loaded for truck ${truckNo}`);
+        addSuccess(`Existing data loaded for truck ${truckNo}`);
         // setAlertType("info");
         // setAlertVisible(true);
         // setTimeout(() => setAlertVisible(false), 3000);
