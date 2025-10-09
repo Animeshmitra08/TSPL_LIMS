@@ -105,6 +105,8 @@ export default function RakeSampleForm() {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  const [isProcessing, setIsProcessing] = useState(false);
+
 
   const rakeNoRef = useRef<any>(null);
   const commodityRef = useRef<any>(null);
@@ -269,34 +271,7 @@ export default function RakeSampleForm() {
   const width = useWindowDimensions().width;
   const isLandScape = width > height;
 
-  const handleRakeNoChange = (selectedRakeId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      rakeNo: selectedRakeId,
-    }));
-
-    const selected = rakeNumbers.find((r) => r.tspL_RAKE_ID === selectedRakeId);
-
-    if (selected) {
-      // parse date & time
-      const parsedDate = parseRakeDateTime(selected.planT_ARV_DATE, selected.planT_ARV_TIME);
-      if (parsedDate) {
-        setRpDateTime(parsedDate);
-        setFormData(prev => ({
-          ...prev,
-          rakePlacementDateAndTime: parsedDate,
-        }));
-      }
-
-      // wagons
-      setFormData(prev => ({
-        ...prev,
-        fromWagon: selected.froM_WAGON || "",
-        toWagon: selected.tO_WAGON || "",
-        noOfWagons: selected.totaL_WAGON || "",
-      }));
-    }
-  };
+  
 
   function isDeepEqual(a: any, b: any): boolean {
     if (a instanceof Date && b instanceof Date) {
@@ -346,7 +321,9 @@ export default function RakeSampleForm() {
       const controller = new AbortController();
       const response = await axios.get(
         `${Api_Base}/Sampling/Filter/POWERTYPE/COAL?RakeNo=${rakeId}`,
-        { signal : controller.signal }
+        { signal : controller.signal,
+          timeout: 10000
+        }
       );
       const data = response.data;
 
@@ -357,139 +334,142 @@ export default function RakeSampleForm() {
         const commence = parseRakeDateTime(existing.rakE_UNLD_CM_DT, existing.rakE_UNLD_CM_TM) ?? new Date();
         const complete = parseRakeDateTime(existing.rakE_UNLD_CT_DT, existing.rakE_UNLD_CT_TM) ?? new Date();
 
-        setFormData((prev) => ({
-          ...prev,
-          rakeNo: existing.rakE_NO || rakeId,
-          clientName: existing.clienT_NAME || prev.clientName,
-          commodity: existing.commodity || "",
-          rakePlacementDateAndTime: placement,
-          rakeUnloadingCommenceDateAndTime: commence,
-          rakeUnloadingCompletedDateAndTime: complete,
-          dateOfSampleCollection: existing.samplE_COLLECTION_DATE || dayjs().format("YYYYMMDD"),
-          SampleCollectionStartDateAndTime: parseRakeDateTime(existing.samplE_START_DT, existing.samplE_START_TM) ?? new Date(),
-          SampleCollectionEndDateAndTime: parseRakeDateTime(existing.samplE_COMPT_DT, existing.samplE_COMPT_TM) ?? new Date(),
-          noOfBagsCollected: Number(existing.nO_OF_BAGS_COL) || 0,
-          samplingAgency: existing.samplE_AGENCY || "",
-          supervisor: existing.supervisor || "",
-          samplers: existing.sampler || "",
-          allSampleBagsSealChecked: existing.seaL_CHECK || "",
-          samplingMode: existing.samplinG_MODE || "",
-          autoSampler: existing.autO_SAMPLER || "",
-          fromWagon: existing.froM_WAGON || "",
-          toWagon: existing.tO_WAGON || "",
-          noOfWagons: Number(existing.nO_OF_WAGONS) || 0,
-          weatherCondition: existing.weatheR_COND || "",
-          remarks: existing.remarks || "",
-        }));
+        requestAnimationFrame(()=>{
+          setFormData((prev) => ({
+            ...prev,
+            rakeNo: existing.rakE_NO || rakeId,
+            clientName: existing.clienT_NAME || prev.clientName,
+            commodity: existing.commodity || "",
+            rakePlacementDateAndTime: placement,
+            rakeUnloadingCommenceDateAndTime: commence,
+            rakeUnloadingCompletedDateAndTime: complete,
+            dateOfSampleCollection: existing.samplE_COLLECTION_DATE || dayjs().format("YYYYMMDD"),
+            SampleCollectionStartDateAndTime: parseRakeDateTime(existing.samplE_START_DT, existing.samplE_START_TM) ?? new Date(),
+            SampleCollectionEndDateAndTime: parseRakeDateTime(existing.samplE_COMPT_DT, existing.samplE_COMPT_TM) ?? new Date(),
+            noOfBagsCollected: Number(existing.nO_OF_BAGS_COL) || 0,
+            samplingAgency: existing.samplE_AGENCY || "",
+            supervisor: existing.supervisor || "",
+            samplers: existing.sampler || "",
+            allSampleBagsSealChecked: existing.seaL_CHECK || "",
+            samplingMode: existing.samplinG_MODE || "",
+            autoSampler: existing.autO_SAMPLER || "",
+            fromWagon: existing.froM_WAGON || "",
+            toWagon: existing.tO_WAGON || "",
+            noOfWagons: Number(existing.nO_OF_WAGONS) || 0,
+            weatherCondition: existing.weatheR_COND || "",
+            remarks: existing.remarks || "",
+          }));
 
-        if (Array.isArray(data.tCoalBioBags)) {
-          setBoxes(
-            data.tCoalBioBags.map((b: any) => ({
-              bagNo: b.baG_NO,
-              seal: b.seaL_NO,
-            }))
-          );
-        }
+          if (Array.isArray(data.tCoalBioBags)) {
+            setBoxes(
+              data.tCoalBioBags.map((b: any) => ({
+                bagNo: b.baG_NO,
+                seal: b.seaL_NO,
+              }))
+            );
+          }
 
-        setRpDateTime(placement);
-        setRUnloadDateTime(commence);
-        setRakeCompleteDT(complete);
+          setRpDateTime(placement);
+          setRUnloadDateTime(commence);
+          setRakeCompleteDT(complete);
 
-        // setAlertMessage("Existing data loaded for this Coal Sampling");
-        // setAlertType("info");
-        // setAlertVisible(true);
-        // setTimeout(() => setAlertVisible(false), 3000);
-
-        addSuccess(`Existing data loaded for ${rakeId}`)
-
-        setIsUpdateMode(true);
+          addSuccess(`Existing data loaded for ${rakeId}`);
+          setIsUpdateMode(true);
+        });
       } else {
-        const selected = rakeNumbers.find(r => r.value === rakeId);
-        const placement = parseRakeDateTime(selected?.planT_ARV_DATE, selected?.planT_ARV_TIME) ?? new Date();
-
-        setFormData(prev => ({
-          ...prev,
-          rakeNo: rakeId,
-          commodity: "",
-          rakePlacementDateAndTime: placement,
-          rakeUnloadingCommenceDateAndTime: new Date(),
-          rakeUnloadingCompletedDateAndTime: new Date(),
-          dateOfSampleCollection: dayjs().format("YYYYMMDD"),
-          SampleCollectionStartDateAndTime: new Date(),
-          SampleCollectionEndDateAndTime: new Date(),
-          noOfBagsCollected: 0,
-          samplingAgency: "",
-          supervisor: "",
-          samplers: "",
-          allSampleBagsSealChecked: "YES",   
-          samplingMode: "AUTO",             
-          autoSampler: "",
-          fromWagon: selected?.froM_WAGON || "",
-          toWagon: selected?.tO_WAGON || "",
-          noOfWagons: Number(selected?.totaL_WAGON) || 0,
-          weatherCondition: "CLOUDY",        
-          remarks: "",
-        }));
-
-        setBoxes([]);
-        setRpDateTime(placement);
-        setRUnloadDateTime(new Date());
-        setRakeCompleteDT(new Date());
-
-        setIsUpdateMode(false);
-        // setAlertMessage("No existing data. Enter new record.");
-        // setAlertType("info");
-        // setAlertVisible(true);
-        // setTimeout(() => setAlertVisible(false), 3000);
+        handleNewRakeEntry(rakeId);
       }
     } catch (error) {
       if (!axios.isCancel(error)) {
         console.error("Error fetching rake data:", error);
-        
-        // Fallback to rakeNumbers info on error
-        const selected = rakeNumbers.find(r => r.value === rakeId);
-        const placement = parseRakeDateTime(selected?.planT_ARV_DATE, selected?.planT_ARV_TIME) ?? new Date();
-
-        setFormData(prev => ({
-          ...prev,
-          rakeNo: rakeId,
-          commodity: "",
-          rakePlacementDateAndTime: placement,
-          rakeUnloadingCommenceDateAndTime: new Date(),
-          rakeUnloadingCompletedDateAndTime: new Date(),
-          dateOfSampleCollection: dayjs().format("YYYYMMDD"),
-          SampleCollectionStartDateAndTime: new Date(),
-          SampleCollectionEndDateAndTime: new Date(),
-          noOfBagsCollected: 0,
-          samplingAgency: "",
-          supervisor: "",
-          samplers: "",
-          allSampleBagsSealChecked: "YES",  
-          samplingMode: "AUTO",  
-          autoSampler: "",
-          fromWagon: selected?.froM_WAGON || "",
-          toWagon: selected?.tO_WAGON || "",
-          noOfWagons: Number(selected?.totaL_WAGON) || 0,
-          weatherCondition: "CLOUDY",        
-          remarks: "",
-        }));
-
-        setBoxes([]);
-        setRpDateTime(placement);
-        setRUnloadDateTime(new Date());
-        setRakeCompleteDT(new Date());
-
-        setIsUpdateMode(false);
-        // setAlertMessage("No existing data. Enter new record.");
-        // setAlertType("info");
-        // setAlertVisible(true);
-        // setTimeout(() => setAlertVisible(false), 3000);
-        // addError("Data not found")
+        handleNewRakeEntry(rakeId);
       }
     } finally {
       setRakeDataLoading(false);
     }
-  }, [rakeNumbers, parseRakeDateTime]);
+  }, [rakeNumbers, Api_Base]);
+
+  const handleNewRakeEntry = useCallback((rakeId: string) => {
+    const selected = rakeNumbers.find(r => r.value === rakeId);
+    const placement = parseRakeDateTime(selected?.planT_ARV_DATE, selected?.planT_ARV_TIME) ?? new Date();
+
+    requestAnimationFrame(() => {
+      setFormData(prev => ({
+        ...prev,
+        rakeNo: rakeId,
+        commodity: "",
+        rakePlacementDateAndTime: placement,
+        rakeUnloadingCommenceDateAndTime: new Date(),
+        rakeUnloadingCompletedDateAndTime: new Date(),
+        dateOfSampleCollection: dayjs().format("YYYYMMDD"),
+        SampleCollectionStartDateAndTime: new Date(),
+        SampleCollectionEndDateAndTime: new Date(),
+        noOfBagsCollected: 0,
+        samplingAgency: "",
+        supervisor: "",
+        samplers: "",
+        allSampleBagsSealChecked: "YES",
+        samplingMode: "AUTO",
+        autoSampler: "",
+        fromWagon: selected?.froM_WAGON || "",
+        toWagon: selected?.tO_WAGON || "",
+        noOfWagons: Number(selected?.totaL_WAGON) || 0,
+        weatherCondition: "CLOUDY",
+        remarks: "",
+      }));
+
+      setBoxes([]);
+      setRpDateTime(placement);
+      setRUnloadDateTime(new Date());
+      setRakeCompleteDT(new Date());
+      setIsUpdateMode(false);
+    });
+  }, [rakeNumbers]);
+
+
+  const handleRakeNoChange = useCallback( async(selectedRakeId: string) => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+
+    try {
+      setFormData((prev) => ({
+        ...prev,
+        rakeNo: selectedRakeId,
+      }));
+
+      const selected = rakeNumbers.find((r) => r.tspL_RAKE_ID === selectedRakeId);
+
+      if (selected) {
+        // parse date & time
+        const parsedDate = parseRakeDateTime(selected.planT_ARV_DATE, selected.planT_ARV_TIME);
+
+        setFormData(prev => ({
+          ...prev,
+          rakeNo: selectedRakeId,
+          rakePlacementDateAndTime: parsedDate || new Date(),
+          fromWagon: selected.froM_WAGON || "",
+          toWagon: selected.tO_WAGON || "",
+          noOfWagons: Number(selected.totaL_WAGON) || 0,
+        }));
+
+        if (parsedDate) {
+          setRpDateTime(parsedDate);
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Fetch rake data
+      await fetchRakeData(selectedRakeId);
+      
+    } catch (error) {
+      console.error("Error in handleRakeNoChange:", error);
+      addError("Failed to load rake data");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [rakeNumbers, fetchRakeData, isProcessing]);
 
   // Function to validate form and return missing fields
   const validateForm = () => {
@@ -831,23 +811,31 @@ export default function RakeSampleForm() {
                 ref={rakeNoRef}
                 field={{ name: "rakeNo", label: "Rake No" }}
                 formData={formData}
+                // handleChange={async (field: any, val: any) => {
+                //   handleChange(field, val);
+                //   const selected = rakeNumbers.find(r => r.value === val);
+                //   if (selected) {
+                //     const parsedDate = parseRakeDateTime(selected.planT_ARV_DATE, selected.planT_ARV_TIME);
+                //     if (parsedDate) {
+                //       setRpDateTime(parsedDate);
+                //       setFormData(prev => ({
+                //         ...prev,
+                //         rakePlacementDateAndTime: parsedDate,
+                //         noOfWagons: Number(selected.totaL_WAGON) || 0,
+                //         fromWagon: selected.froM_WAGON || "",
+                //         toWagon: selected.tO_WAGON || "",
+                //       }));
+                //     }
+                //   };
+                //   await fetchRakeData(val);
+                // }}
                 handleChange={async (field: any, val: any) => {
-                  handleChange(field, val);
-                  const selected = rakeNumbers.find(r => r.value === val);
-                  if (selected) {
-                    const parsedDate = parseRakeDateTime(selected.planT_ARV_DATE, selected.planT_ARV_TIME);
-                    if (parsedDate) {
-                      setRpDateTime(parsedDate);
-                      setFormData(prev => ({
-                        ...prev,
-                        rakePlacementDateAndTime: parsedDate,
-                        noOfWagons: Number(selected.totaL_WAGON) || 0,
-                        fromWagon: selected.froM_WAGON || "",
-                        toWagon: selected.tO_WAGON || "",
-                      }));
-                    }
-                  };
-                  await fetchRakeData(val);
+                  setRakeModalVisible(false);
+                  
+                  // Handle the change with a small delay
+                  requestAnimationFrame(async () => {
+                    await handleRakeNoChange(val);
+                  });
                 }}
                 isVisible={rakeModalVisible}
                 setIsVisible={setRakeModalVisible}
@@ -855,8 +843,11 @@ export default function RakeSampleForm() {
                 screenWidth={screenWidht}
                 dataList={rakeNumbers}
                 onOpen={null}
+                disabled={isProcessing || rakeDataLoading}
                 onSubmitEditing={() => {
-                  setIsCommodity(true);
+                  if (!isProcessing) {
+                    setIsCommodity(true);
+                  }
                 }}
                 returnKeyType="next"
               />
@@ -1153,6 +1144,13 @@ export default function RakeSampleForm() {
         message="Loading rake data..."
       />
 
+      {(isProcessing || rakeDataLoading) && (
+        <View style={styles.processingIndicator}>
+          <ActivityIndicator size="small" color="#193b86ff" />
+          <Text style={styles.processingText}>Loading rake data...</Text>
+        </View>
+      )}
+
       {/* <AlertMessage
         key={alertMessage + alertVisible}
         visible={alertVisible}
@@ -1288,6 +1286,21 @@ const styles = StyleSheet.create({
     color: '#856404',
     fontSize: 14,
     marginBottom: 4,
+  },
+  processingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: '#fffbe6',
+    borderRadius: 8,
+    margin: 16,
+    elevation: 2,
+  },
+  processingText: {
+    marginLeft: 8,
+    color: '#856404',
+    fontSize: 15,
   },
 });
 
