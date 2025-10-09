@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BackHandler, useColorScheme, View } from 'react-native';
-import { ActivityIndicator, MD3DarkTheme, MD3LightTheme, PaperProvider, Snackbar, Text } from 'react-native-paper';
+import { ActivityIndicator, Icon, MD3DarkTheme, MD3LightTheme, PaperProvider, Snackbar, Text } from 'react-native-paper';
 import LoginPage from '.';
 import DrawerNavigator from '../(drawer)/DrawerNavigator';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +8,9 @@ import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ResetPasswordPage from '../Screens/ResetPassword';
 import { decrypt, encrypt } from '@/context/cryptoutils';
+
+import NetInfo from '@react-native-community/netinfo';
+
 
 const lightTheme = {
     ...MD3LightTheme,
@@ -56,6 +59,31 @@ export default function TabsLayout() {
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);  
+
+
+  const [visible, setVisible] = useState(false);
+  const [message, setMessage] = useState('');
+  const wasConnected = useRef(true);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const isConnected = !!state.isConnected;
+
+      if (wasConnected.current && !isConnected) {
+        setMessage('You are offline');
+        setVisible(true);
+      } else if (!wasConnected.current && isConnected) {
+        setMessage('Back online');
+        setVisible(true);
+      }
+
+      wasConnected.current = isConnected;
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+
   
 
   const handleLogin = async (username: string, password: string) => {
@@ -163,6 +191,11 @@ export default function TabsLayout() {
 
   const handleVisible = () => setAlertVisible(false);
 
+  const isOffline = message.toLowerCase().includes('offline');
+
+  const backgroundColor = isOffline ? '#D32F2F' : '#388E3C'; // red / green shades
+  const iconName = isOffline ? 'wifi-off' : 'wifi';
+
   return (
     <PaperProvider theme={lightTheme}>
 
@@ -206,6 +239,22 @@ export default function TabsLayout() {
         }}
       >
         {alertMessage}
+      </Snackbar>
+      <Snackbar
+        visible={visible}
+        onDismiss={() => setVisible(false)}
+        duration={3000}
+        style={{
+          backgroundColor,
+          borderRadius: 12,
+          alignItems: 'center',
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Icon source={iconName} size={20} color="white" />
+          <View style={{ width: 8 }} />
+          <Text style={{ color: 'white', fontWeight: '600' }}>{message}</Text>
+        </View>
       </Snackbar>
     </PaperProvider>
   );

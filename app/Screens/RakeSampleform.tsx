@@ -759,6 +759,9 @@ export default function RakeSampleForm() {
         { headers: { "Content-Type": "application/json" } }
       );
 
+      console.log(response.data);
+      
+
       addSuccess(`Biomass Sampling Report ${isUpdateMode ? 'updated' : 'submitted'} successfully!`);
       setTimeout(() => {
         resetForm();
