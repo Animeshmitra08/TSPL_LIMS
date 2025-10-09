@@ -95,18 +95,23 @@ export default function TabsLayout() {
 
       if (res.data?.success) {
         const userData = res.data.data;        
+        const decryptedPassword = decrypt(userData.password);
 
-        const success = await login(userData, password);        
+        console.log(userData);
+        
+
+        // Check for default password BEFORE login
+        if (decryptedPassword === "Tspl@#202401") {
+          setResetMode({ user: userData });
+          setAlertMessage('Please reset your default password');
+          setAlertType('info');
+          return; // stop here, don't call login yet
+        }
+
+        // Otherwise, proceed to login normally
+        const success = await login(userData, password);
 
         if (success) {
-          const decryptedPassword = decrypt(userData.password);
-          if (decryptedPassword === "Tspl@#202401") {
-            setResetMode({ user: userData });
-            setAlertMessage('Please reset your default password');
-            setAlertType('info');
-            return;
-          }
-
           setAlertMessage('Login Successful');
           setAlertType('success');
         } else {
@@ -208,7 +213,7 @@ export default function TabsLayout() {
         </View>
       )  : resetMode ? ( 
         <ResetPasswordPage
-          username={resetMode.user.username}
+          username={resetMode.user.emailid}
           onComplete={() => setResetMode(null)}
           onResetConfirm={handleResetPasswordConfirm}
         />

@@ -21,7 +21,7 @@ export function generateCapture(prev: string = ""): {
   // add strikethrough effect
   const styled = raw
     .split("")
-    .map((c) => c + "\u0336") // Unicode combining strikethrough
+    // .map((c) => c + "\u0336") // Unicode combining strikethrough
     .join("");
 
   return { raw, styled };
