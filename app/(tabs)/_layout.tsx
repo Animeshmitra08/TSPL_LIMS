@@ -82,8 +82,6 @@ export default function TabsLayout() {
 
     return () => unsubscribe();
   }, []);
-
-
   
 
   const handleLogin = async (username: string, password: string) => {
@@ -105,10 +103,9 @@ export default function TabsLayout() {
           setResetMode({ user: userData });
           setAlertMessage('Please reset your default password');
           setAlertType('info');
-          return; // stop here, don't call login yet
+          return;
         }
 
-        // Otherwise, proceed to login normally
         const success = await login(userData, password);
 
         if (success) {
@@ -165,21 +162,28 @@ export default function TabsLayout() {
     try {
       const encryptedPassword = encrypt(newPassword);
 
-      if (!user) throw new Error("No user Content");
+      const currentUser = resetMode?.user;
+      if (!currentUser) throw new Error("No user Content");
 
       const updatedUser = {
-        ...user,                     
+        ...currentUser,                     
         password: encryptedPassword,
       };
 
       const res = await axios.post(`${API_Base_URL}/TSPL_Users/UpdateUser`, updatedUser);
 
       if (res.data?.success) {
-        await resetPassword(oldPassword, newPassword);
+      // ✅ Automatically log the user in after password reset
+        const success = await login(updatedUser, newPassword);
 
-        setAlertMessage(res.data?.data || "Password reset successful");
-        setAlertType("success");
-        setResetMode(null);
+        if (success) {
+          setAlertMessage("Password reset successful. You are now logged in.");
+          setAlertType("success");
+          setResetMode(null); // go to home automatically
+        } else {
+          setAlertMessage("Password reset successful but login failed.");
+          setAlertType("error");
+        }
       } else {
         setAlertMessage(res.data?.data || "Failed to reset password");
         setAlertType("error");
