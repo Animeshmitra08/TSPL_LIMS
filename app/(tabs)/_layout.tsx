@@ -62,7 +62,7 @@ export default function TabsLayout() {
 
 
   const [visible, setVisible] = useState(false);
-  const [message, setMessage] = useState('');
+  const [isOffline, setIsOffline] = useState(false);
   const wasConnected = useRef(true);
 
   useEffect(() => {
@@ -70,11 +70,15 @@ export default function TabsLayout() {
       const isConnected = !!state.isConnected;
 
       if (wasConnected.current && !isConnected) {
-        setMessage('You are offline');
+        // Going offline
+        setIsOffline(true);
         setVisible(true);
       } else if (!wasConnected.current && isConnected) {
-        setMessage('Back online');
+        // Coming back online
+        setIsOffline(false);
         setVisible(true);
+        // Auto-hide the "back online" message after 3 seconds
+        setTimeout(() => setVisible(false), 3000);
       }
 
       wasConnected.current = isConnected;
@@ -173,7 +177,6 @@ export default function TabsLayout() {
       const res = await axios.post(`${API_Base_URL}/TSPL_Users/UpdateUser`, updatedUser);
 
       if (res.data?.success) {
-      // ✅ Automatically log the user in after password reset
         const success = await login(updatedUser, newPassword);
 
         if (success) {
@@ -200,10 +203,9 @@ export default function TabsLayout() {
 
   const handleVisible = () => setAlertVisible(false);
 
-  const isOffline = message.toLowerCase().includes('offline');
-
   const backgroundColor = isOffline ? '#D32F2F' : '#388E3C'; // red / green shades
   const iconName = isOffline ? 'wifi-off' : 'wifi';
+  const message = isOffline ? 'You are offline' : 'Back online';
 
   return (
     <PaperProvider theme={lightTheme}>
@@ -251,8 +253,13 @@ export default function TabsLayout() {
       </Snackbar>
       <Snackbar
         visible={visible}
-        onDismiss={() => setVisible(false)}
-        duration={3000}
+        onDismiss={() => {
+          // Only allow dismissing when back online
+          if (!isOffline) {
+            setVisible(false);
+          }
+        }}
+        duration={isOffline ? Number.POSITIVE_INFINITY : 3000}
         style={{
           backgroundColor,
           borderRadius: 12,
