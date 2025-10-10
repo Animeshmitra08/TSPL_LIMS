@@ -617,34 +617,53 @@ export default function RakeSampleForm() {
 
         // Focus on the first missing field
         const firstMissingField = missingFields[0].toLowerCase();
+        // setTimeout(() => {
+        //   if (firstMissingField.includes('rake no')) {
+        //     rakeNoRef.current?.focus();
+        //     scrollToInput(rakeNoRef);
+        //   } else if (firstMissingField.includes('commodity')) {
+        //     commodityRef.current?.focus();
+        //     scrollToInput(commodityRef);
+        //   } else if (firstMissingField.includes('bags collected')) {
+        //     noOfBagsRef.current?.focus();
+        //     scrollToInput(noOfBagsRef);
+        //   } else if (firstMissingField.includes('sampling agency')) {
+        //     samplingAgencyRef.current?.focus();
+        //     scrollToInput(samplingAgencyRef);
+        //   } else if (firstMissingField.includes('supervisor')) {
+        //     supervisorRef.current?.focus();
+        //     scrollToInput(supervisorRef);
+        //   } else if (firstMissingField.includes('samplers')) {
+        //     samplersRef.current?.focus();
+        //     scrollToInput(samplersRef);
+        //   } else if (firstMissingField.includes('remarks')) {
+        //     remarksRef.current?.focus();
+        //     scrollToInput(remarksRef);
+        //   } else if (firstMissingField.includes('wagons')) {
+        //     noOfWagonsRef.current?.focus();
+        //     scrollToInput(noOfWagonsRef);
+        //   } else if (firstMissingField.includes('seal') || firstMissingField.includes('bag')) {
+        //     // If the error is related to bags/seals, scroll to the bags section
+        //     scrollToInput(noOfBagsRef);
+        //   }
+        // }, 500);
         setTimeout(() => {
           if (firstMissingField.includes('rake no')) {
             rakeNoRef.current?.focus();
-            scrollToInput(rakeNoRef);
           } else if (firstMissingField.includes('commodity')) {
             commodityRef.current?.focus();
-            scrollToInput(commodityRef);
           } else if (firstMissingField.includes('bags collected')) {
             noOfBagsRef.current?.focus();
-            scrollToInput(noOfBagsRef);
           } else if (firstMissingField.includes('sampling agency')) {
             samplingAgencyRef.current?.focus();
-            scrollToInput(samplingAgencyRef);
           } else if (firstMissingField.includes('supervisor')) {
             supervisorRef.current?.focus();
-            scrollToInput(supervisorRef);
           } else if (firstMissingField.includes('samplers')) {
             samplersRef.current?.focus();
-            scrollToInput(samplersRef);
           } else if (firstMissingField.includes('remarks')) {
             remarksRef.current?.focus();
-            scrollToInput(remarksRef);
           } else if (firstMissingField.includes('wagons')) {
             noOfWagonsRef.current?.focus();
-            scrollToInput(noOfWagonsRef);
-          } else if (firstMissingField.includes('seal') || firstMissingField.includes('bag')) {
-            // If the error is related to bags/seals, scroll to the bags section
-            scrollToInput(noOfBagsRef);
           }
         }, 500);
       }
