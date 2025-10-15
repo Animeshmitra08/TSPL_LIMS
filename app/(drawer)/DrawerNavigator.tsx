@@ -8,6 +8,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import LandingScreen from '../Screens/Landing';
 import { useAuth } from '@/context/AuthContext';
+import GetVehicleStatus from '../Screens/GetVehicleStatus';
+import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +22,7 @@ export type DrawerParamList = {
   Home: undefined;
   "Biomass Sampling": undefined;
   "Coal Sampling": undefined;
+  "Vehicle Status": undefined;
 };
 
 
@@ -148,6 +151,33 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           headerShadowVisible: true,
         }}
       />      
+
+      <Drawer.Screen
+        name="Vehicle Status"
+        component={GetVehicleStatus}
+        options={{
+          drawerIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
+              <MaterialDesignIcons name="car-info" size={size + 2} color={color} />
+            </View>
+          ),
+          headerBackground: () => (
+            <LinearGradient
+              colors={["#193b86ff", "#ec905bff"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ flex: 1 }}
+            />
+          ),
+          headerTintColor: "#fff",
+          headerTitleStyle: { 
+            fontWeight: "bold",
+            fontSize: 20,
+            letterSpacing: 0.5,
+          },
+          headerShadowVisible: true,
+        }}
+      /> 
     </Drawer.Navigator>
   );
 }
