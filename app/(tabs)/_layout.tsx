@@ -95,6 +95,9 @@ export default function TabsLayout() {
         `${API_Base_URL}/TSPL_Users/${username.toUpperCase()}`
       );
 
+      console.log(res);
+      
+
       if (res.data?.success) {
         const userData = res.data.data;        
         const decryptedPassword = decrypt(userData.password);
@@ -123,9 +126,10 @@ export default function TabsLayout() {
         setAlertMessage('User not found');
         setAlertType('error');
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      setAlertMessage('Error connecting to server');
+    } catch (error : any) {
+      const err = error.response.data.Data.ErrorInfo;
+      console.error('Login error:', err);
+      setAlertMessage(`${err.Key} : ${err.Message}`);
       setAlertType('error');
     } finally {
       setAlertVisible(true);

@@ -254,9 +254,9 @@ export default function RakeSampleForm() {
           addInfo(`Loaded ${data.tRakeNo.length} rake numbers`, {duration: 500});
         }
         
-      } catch (err) {
-          console.error("API fetch error", err);
-          addError("Failed to load dropdown data");
+      } catch (err : any) {
+          console.error("API fetch error", err.response.data);
+          addError(`${err.response.data}`);
       } finally {
           setLoading(false);
       }
@@ -379,11 +379,13 @@ export default function RakeSampleForm() {
       } else {
         handleNewRakeEntry(rakeId);
       }
-    } catch (error) {
-      if (!axios.isCancel(error)) {
-        console.error("Error fetching rake data:", error);
-        handleNewRakeEntry(rakeId);
-      }
+    } catch (error : any) {
+      // if (!axios.isCancel(error)) {
+      //   console.error("Error fetching rake data:", error.response.data);
+      //   addInfo(error.response.data)
+      // }
+
+      handleNewRakeEntry(rakeId);
     } finally {
       setRakeDataLoading(false);
     }
@@ -761,23 +763,13 @@ export default function RakeSampleForm() {
       console.log(response.data);
       
 
-      addSuccess(`Biomass Sampling Report ${isUpdateMode ? 'updated' : 'submitted'} successfully!`);
+      addSuccess(`Coal Sampling Report ${isUpdateMode ? 'updated' : 'submitted'} successfully!`);
       setTimeout(() => {
         resetForm();
       }, 3000);
     } catch (error: any) {
       console.error("Error submitting data:", error);
-      addError(`Failed to submit data. Please try again.`);
-
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 400) {
-          addWarning("Invalid data format. Please check your inputs.");
-        } else if (error.response?.status === 500) {
-          addError("Server error. Please contact support if issue persists.");
-        } else if (error.code === 'NETWORK_ERROR') {
-          addWarning("Network connection issue. Please check your internet.");
-        }
-      }
+      addError(`Failed to submit data. Please try again. ${error.response.data}`);
     }
   };
 

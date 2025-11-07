@@ -174,7 +174,17 @@ export default function LoginPage({ onLogin, onResetPassword }: LoginPageProps) 
             </Button>
           </Card.Content>
         </Card>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Design & Developed by:{' '}
+            <Text style={styles.footerBrandBlue}>AON </Text>
+            <Text style={styles.footerBrandOrange}>DIGICON </Text>
+            <Text style={styles.footerBrandBlue}>LLP</Text>
+          </Text>
+        </View>
       </View>
+      
 
       {/* Snackbar for notifications */}
       <Snackbar
@@ -292,5 +302,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 24,
     elevation: 8,
+  },
+  footer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    backgroundColor: '#f1f1f1',
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+    marginTop: 20,
+  },
+
+  footerText: {
+    textAlign: 'center',
+    color: '#333',
+    fontSize: 14,
+  },
+
+  footerBrandBlue: {
+    color: '#1b0886ff',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+
+  footerBrandOrange: {
+    color: '#d76902ff',
+    fontWeight: '800',
+    fontSize: 16,
   },
 });

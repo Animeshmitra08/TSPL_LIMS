@@ -20,167 +20,141 @@ type DrawerNavigatorProps = {
 
 export type DrawerParamList = {
   Home: undefined;
-  "Biomass Sampling": undefined;
-  "Coal Sampling": undefined;
-  "Vehicle Status": undefined;
+  biomassSampling: undefined;
+  coalSampling: undefined;
+  vehicleStatus: undefined;
 };
 
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
 export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
+  const colorScheme = useColorScheme();
+  const { user } = useAuth(); // 👈 get logged-in user from context
 
-  let colorScheme = useColorScheme();
-  
+  // Define all possible drawer screens in one place
+  const drawerScreens = {
+    Home: {
+      component: LandingScreen,
+      label: "Home",
+      icon: (color: string, size: number, focused: boolean) => (
+        <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
+          <MaterialIcons name="home" size={size + 2} color={color} />
+        </View>
+      ),
+      gradient: ["#193b86ff", "#276dbdff"],
+    },
+    coalSampling: {
+      component: RakeSampleForm,
+      label: "Coal Sampling",
+      icon: (color: string, size: number, focused: boolean) => (
+        <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
+          <FontAwesome5 name="fire" size={size + 1} color={color} />
+        </View>
+      ),
+      gradient: ["#193b86ff", "#276dbdff"],
+    },
+    biomassSampling: {
+      component: HomeScreen,
+      label: "Biomass Sampling",
+      icon: (color: string, size: number, focused: boolean) => (
+        <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
+          <MaterialIcons name="eco" size={size + 2} color={color} />
+        </View>
+      ),
+      gradient: ["#eb6a2eff", "#ec905bff"],
+    },
+    vehicleStatus: {
+      component: GetVehicleStatus,
+      label: "Vehicle Status",
+      icon: (color: string, size: number, focused: boolean) => (
+        <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
+          <MaterialDesignIcons name="car-info" size={size + 2} color={color} />
+        </View>
+      ),
+      gradient: ["#193b86ff", "#ec905bff"],
+    },
+  } as const;
+
+  // ✅ Filter drawer items based on user.userAuthorizations
+  const authorizedRoutes =
+    user?.userAuthorizations?.map((a) => a.path).filter((path) => path in drawerScreens) ?? [];
+
+  // ✅ Move "Home" to the first position if it exists, otherwise optionally add it
+  if (authorizedRoutes.includes("Home")) {
+    // Remove it and insert at the start
+    const withoutHome = authorizedRoutes.filter((p) => p !== "Home");
+    authorizedRoutes.splice(0, authorizedRoutes.length, "Home", ...withoutHome);
+  } else {
+    // Always include Home if needed
+    authorizedRoutes.unshift("Home");
+  }
+
+  console.log(authorizedRoutes);
+
   return (
     <Drawer.Navigator
+      initialRouteName='Home'
       screenOptions={{
         headerShown: true,
-        drawerHideStatusBarOnOpen: false,
         drawerStyle: {
           backgroundColor: colorScheme === "dark" ? "#1a1a1a" : "#f8f9fa",
           borderTopRightRadius: 25,
           borderBottomRightRadius: 25,
           overflow: "hidden",
           width: width * 0.85,
-          shadowColor: "#000",
-          shadowOffset: {
-            width: 2,
-            height: 2,
-          },
-          shadowOpacity: 0.25,
-          shadowRadius: 8,
-          elevation: 10,
+          elevation: 10
         },
         drawerActiveTintColor: colorScheme === "dark" ? "#4fc3f7" : "#1976d2",
         drawerInactiveTintColor: colorScheme === "dark" ? "#b0b0b0" : "#666",
+        drawerLabelStyle: {
+          fontSize: 16,
+          fontWeight: "600",
+          marginLeft: -8,
+        },
         drawerItemStyle: {
           marginHorizontal: 12,
           marginVertical: 4,
           borderRadius: 12,
           paddingHorizontal: 8,
         },
-        drawerLabelStyle: {
-          fontSize: 16,
-          fontWeight: '600',
-          marginLeft: -8,
-        },
         drawerActiveBackgroundColor: colorScheme === "dark" ? "#2d5a87" : "#e3f2fd",
       }}
-      drawerContent={(props) => (
-        <CustomDrawer {...props} onLogout={onLogout} />
-      )}
+      drawerContent={(props) => <CustomDrawer {...props} onLogout={onLogout} />}
     >
-      <Drawer.Screen 
-        name="Home"
-        component={LandingScreen}
-        options={{
-          drawerIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
-              <MaterialIcons name="home" size={size + 2} color={color} />
-            </View>
-          ),
-          headerBackground: () => (
-            <LinearGradient
-              colors={["#193b86ff", "#276dbdff"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ flex: 1 }}
-            />
-          ),
-          headerTintColor: "#fff",
-          headerTitleStyle: { 
-            fontWeight: "bold",
-            fontSize: 20,
-            letterSpacing: 0.5,
-          },
-          headerShadowVisible: true,
-        }}
-      />
-
-      <Drawer.Screen
-        name="Coal Sampling"
-        component={RakeSampleForm}
-        options={{
-          drawerIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
-              <FontAwesome5 name="fire" size={size + 1} color={color} />
-            </View>
-          ),
-          headerBackground: () => (
-            <LinearGradient
-              colors={["#193b86ff", "#276dbdff"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ flex: 1 }}
-            />
-          ),
-          headerTintColor: "#fff",
-          headerTitleStyle: { 
-            fontWeight: "bold",
-            fontSize: 20,
-            letterSpacing: 0.5,
-          },
-          headerShadowVisible: true,
-        }}
-      />
-
-      <Drawer.Screen
-        name="Biomass Sampling"
-        component={HomeScreen}
-        options={{
-          drawerIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
-              <MaterialIcons name="eco" size={size + 2} color={color} />
-            </View>
-          ),
-          headerBackground: () => (
-            <LinearGradient
-              colors={["#eb6a2eff", "#ec905bff"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ flex: 1 }}
-            />
-          ),
-          headerTintColor: "#fff",
-          headerTitleStyle: { 
-            fontWeight: "bold",
-            fontSize: 20,
-            letterSpacing: 0.5,
-          },
-          headerShadowVisible: true,
-        }}
-      />      
-
-      <Drawer.Screen
-        name="Vehicle Status"
-        component={GetVehicleStatus}
-        options={{
-          drawerIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
-              <MaterialDesignIcons name="car-info" size={size + 2} color={color} />
-            </View>
-          ),
-          headerBackground: () => (
-            <LinearGradient
-              colors={["#193b86ff", "#ec905bff"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ flex: 1 }}
-            />
-          ),
-          headerTintColor: "#fff",
-          headerTitleStyle: { 
-            fontWeight: "bold",
-            fontSize: 20,
-            letterSpacing: 0.5,
-          },
-          headerShadowVisible: true,
-        }}
-      /> 
+      {(authorizedRoutes as (keyof typeof drawerScreens)[]).map((routeKey) => {
+        const screen = drawerScreens[routeKey];
+        return (
+          <Drawer.Screen
+            key={routeKey}
+            name={routeKey as any}
+            component={screen.component}
+            options={{
+              drawerIcon: ({ color, size, focused }) =>
+                screen.icon(color, size, focused),
+              drawerLabel: screen.label,
+              headerBackground: () => (
+                <LinearGradient
+                  colors={screen.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ flex: 1 }}
+                />
+              ),
+              headerTitle: screen.label,
+              headerTintColor: "#fff",
+              headerTitleStyle: {
+                fontWeight: "bold",
+                fontSize: 20,
+              },
+            }}
+          />
+        );
+      })}
     </Drawer.Navigator>
   );
 }
+
 
 async function handleLogout(onLogout: () => Promise<void>) {
   Alert.alert(
@@ -284,13 +258,14 @@ function CustomDrawer(props: any) {
             Logout
           </Button>
         </Surface>
-        
+
         {/* App Version Footer */}
         <View style={styles.footer}>
-          <Text style={[styles.versionText, {
-            color: colorScheme === "dark" ? "#666" : "#999"
-          }]}>
-            Version 2.1.0
+          <Text style={styles.footerText}>
+            Design & Developed by:{' '}
+            <Text style={styles.footerBrandBlue}>AON </Text>
+            <Text style={styles.footerBrandOrange}>DIGICON </Text>
+            <Text style={styles.footerBrandBlue}>LLP</Text>
           </Text>
         </View>
       </View>
@@ -407,5 +382,25 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     fontStyle: 'italic',
+  },
+  footerText: {
+    textAlign: 'center',
+    color: '#333',
+    fontSize: 8,
+    fontStyle: 'italic'
+  },
+
+  footerBrandBlue: {
+    color: '#1b0886ff',
+    fontWeight: '800',
+    fontSize: 12,
+    fontStyle: 'normal'
+  },
+
+  footerBrandOrange: {
+    color: '#d76902ff',
+    fontWeight: '800',
+    fontSize: 12,
+    fontStyle: 'normal'
   },
 });

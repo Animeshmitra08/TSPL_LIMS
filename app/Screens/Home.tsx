@@ -303,7 +303,6 @@ const HomeScreen = () => {
     { key: '2', value: 'MANUAL' },
   ], []);
 
-// Replace your existing handleChange with this:
 const handleChange = useCallback((field: any, val: any) => {
   if (field === "truckNumber" && val && val !== "Select Truck Number") {
     // Reset state immediately for better UX
@@ -581,20 +580,10 @@ const handleSubmit = useCallback(async () => {
     setTimeout(() => {
       resetForm();
     }, 3000);
-  } catch (err) {
-    console.error("Error submitting data:", err);
+  } catch (err : any) {
+    console.error("Error submitting data:", err.response.data);
     
-    addError(`Failed to submit data. Please try again.`);
-
-    if (axios.isAxiosError(err)) {
-      if (err.response?.status === 400) {
-        addWarning("Invalid data format. Please check your inputs.");
-      } else if (err.response?.status === 500) {
-        addError("Server error. Please contact support if issue persists.");
-      } else if (err.code === 'NETWORK_ERROR') {
-        addWarning("Network connection issue. Please check your internet.");
-      }
-    }
+    addError(`Failed to submit data. Please try again. ${err.response.data}`);
   }
 }, [formData, supervisor, sampler, boxes, SapSampleDateTime, user, baseurl, resetForm, addError, addSuccess, addInfo, addWarning, isUpdateMode]);
 

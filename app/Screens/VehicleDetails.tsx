@@ -30,9 +30,10 @@ export default function VehicleDetailsScreen() {
       const response = await axios.get<VehicleDetails>(url);
 
       setVehicle(response.data);
-    } catch (err: any) {
-      console.error("API Error:", err);
-      setError(err.message || "Something went wrong");
+    } catch (error: any) {
+      const err = error.response.data.Data.ErrorInfo;
+      console.error('Login error:', err);
+      setError(`${err.Key} : ${err.Message}`);
     } finally {
       setLoading(false);
     }

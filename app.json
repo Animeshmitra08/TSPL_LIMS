@@ -2,9 +2,9 @@
   "expo": {
     "name": "TSPL_LIMS",
     "slug": "TSPL_LIMS",
-    "version": "2.1.0",
+    "version": "3.3.0",
     "orientation": "default",
-    "icon": "./assets/images/Splash&Logo.png",
+    "icon": "./assets/images/LogoTspl.jpeg",
     "scheme": "tspllims",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Splash&Logo.png",
+        "foregroundImage": "./assets/images/LogoTspl.jpeg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

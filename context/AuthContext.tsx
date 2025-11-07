@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, use, useContext, useEffect, useState } from "react";
 import { decrypt, encrypt } from "./cryptoutils";
 
 export type User = {
@@ -29,7 +29,18 @@ export type User = {
   logindevice: string;
   lastlogindt: string;
   lastlogintm: string;
-  userAuthorizations: any[]; 
+  userAuthorizations: UserAuthorization[]; 
+};
+
+export type UserAuthorization = {
+  mandt: string;
+  process: string;
+  rolE_NM: string;
+  menuname: string;
+  path: string;
+  menulevel: string;
+  zposition: string;
+  deL_FLAG: string;
 };
 
 type AuthContextType = {
