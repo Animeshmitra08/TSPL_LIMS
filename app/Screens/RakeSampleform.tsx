@@ -11,6 +11,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "@/context/AuthContext";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import AlertSystem, { useAlerts } from "@/components/Cards/AlertSystem";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const initialFormData = {
   clientName: "TALWANDI SABO POWER LIMITED, TALWANDI",
@@ -108,6 +109,18 @@ export default function RakeSampleForm() {
   const [isProcessing, setIsProcessing] = useState(false);
 
 
+  // Add these new state variables at the top with your other useState declarations:
+  const [samplingAgencyHistory, setSamplingAgencyHistory] = useState<string[]>([]);
+  const [supervisorHistory, setSupervisorHistory] = useState<string[]>([]);
+  const [samplersHistory, setSamplersHistory] = useState<string[]>([]);
+  const [remarksHistory, setRemarksHistory] = useState<string[]>([]);
+
+  const [showSamplingAgencySuggestions, setShowSamplingAgencySuggestions] = useState(false);
+  const [showSupervisorSuggestions, setShowSupervisorSuggestions] = useState(false);
+  const [showSamplersSuggestions, setShowSamplersSuggestions] = useState(false);
+  const [showRemarksSuggestions, setShowRemarksSuggestions] = useState(false);
+
+
   const rakeNoRef = useRef<any>(null);
   const commodityRef = useRef<any>(null);
   const noOfBagsRef = useRef<any>(null);
@@ -119,6 +132,64 @@ export default function RakeSampleForm() {
   const scrollViewRef = useRef<any>(null);
 
 
+
+  const STORAGE_KEYS = {
+    SAMPLING_AGENCY: '@sampling_agency_history',
+    SUPERVISOR: '@supervisor_history',
+    SAMPLERS: '@samplers_history',
+    REMARKS: '@remarks_history',
+  };
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const saveToHistory = async (key: string, value: string, setHistory: Function, currentHistory: string[]) => {
+    if (!value || value.trim() === '') return;
+    
+    const trimmedValue = value.trim();
+    
+    // Remove if already exists and add to beginning (most recent first)
+    const updatedHistory = [
+      trimmedValue,
+      ...currentHistory.filter(item => item !== trimmedValue)
+    ].slice(0, 10); // Keep only last 10 entries
+
+    setHistory(updatedHistory);
+    
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error('Error saving history:', error);
+    }
+  };
+
+  // Filter suggestions based on input
+  const getFilteredSuggestions = (input: string, history: string[]) => {
+    if (!input || input.trim() === '') return history;
+    return history.filter(item => 
+      item.toLowerCase().includes(input.toLowerCase())
+    );
+  };
+
+
+  const loadHistory = async () => {
+    try {
+      const [agency, supervisor, samplers, remarks] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.SAMPLING_AGENCY),
+        AsyncStorage.getItem(STORAGE_KEYS.SUPERVISOR),
+        AsyncStorage.getItem(STORAGE_KEYS.SAMPLERS),
+        AsyncStorage.getItem(STORAGE_KEYS.REMARKS),
+      ]);
+
+      if (agency) setSamplingAgencyHistory(JSON.parse(agency));
+      if (supervisor) setSupervisorHistory(JSON.parse(supervisor));
+      if (samplers) setSamplersHistory(JSON.parse(samplers));
+      if (remarks) setRemarksHistory(JSON.parse(remarks));
+    } catch (error) {
+      console.error('Error loading history:', error);
+    }
+  };
 
 
   function parseRakeDateTime(dateStr: string, timeStr: string): Date | undefined {
@@ -222,14 +293,37 @@ export default function RakeSampleForm() {
 
         // Filter dropdown data by field
         if (Array.isArray(data.tDropDownData)) {
-          setCommodities(
-            data.tDropDownData
-              .filter((d: any) => d.field === "COMMODITY")
-              .map((d: any, index: number) => ({
-                key: String(index),
-                value: d.value,
-              }))
+          // setCommodities(
+          //   data.tDropDownData
+          //     .filter((d: any) => d.field === "COMMODITY")
+          //     .map((d: any, index: number) => ({
+          //       key: String(index),
+          //       value: d.value,
+          //     }))
+          // );
+
+          const commodityList = data.tDropDownData
+            .filter((d: any) => d.field === "COMMODITY")
+            .map((d: any, index: number) => ({
+              key: String(index),
+              value: d.value,
+            }));
+          
+          setCommodities(commodityList);
+
+          // 🔹 Set default commodity to "Indian Coal" if available
+          const indianCoal = commodityList.find(
+            (c: any) => c.value.toLowerCase() === "india coal"
           );
+          
+          if (indianCoal) {
+            setFormData(prev => ({
+              ...prev,
+              commodity: indianCoal.value
+            }));
+          }
+
+
 
           setAutoSamplers(
             data.tDropDownData
@@ -240,15 +334,36 @@ export default function RakeSampleForm() {
               }))
           );
 
-          setWeatherConditions(
-            data.tDropDownData
-              .filter((d: any) => d.field === "WEATHER_COND")
-              .map((d: any, index: number) => ({
-                key: String(index),
-                value: d.value,
-              }))
-          );
-        }
+          // setWeatherConditions(
+          //   data.tDropDownData
+          //     .filter((d: any) => d.field === "WEATHER_COND")
+          //     .map((d: any, index: number) => ({
+          //       key: String(index),
+          //       value: d.value,
+          //     }))
+          // );
+
+          const weatherList = data.tDropDownData
+            .filter((d: any) => d.field === "WEATHER_COND")
+            .map((d: any, index: number) => ({
+              key: String(index),
+              value: d.value,
+            }));
+          
+          setWeatherConditions(weatherList);
+
+          // 🔹 Set default weather condition to "CLOUDY" if available
+            const cloudy = weatherList.find(
+              (w: any) => w.value.toUpperCase() === "FAIR"
+            );
+            
+            if (cloudy) {
+              setFormData(prev => ({
+                ...prev,
+                weatherCondition: cloudy.value
+              }));
+            }
+          }
 
         if (data?.tRakeNo?.length > 0) {
           addInfo(`Loaded ${data.tRakeNo.length} rake numbers`, {duration: 500});
@@ -761,7 +876,15 @@ export default function RakeSampleForm() {
       );
 
       console.log(response.data);
-      
+
+
+      // After successful submission, save to history
+      await Promise.all([
+        saveToHistory(STORAGE_KEYS.SAMPLING_AGENCY, formData.samplingAgency, setSamplingAgencyHistory, samplingAgencyHistory),
+        saveToHistory(STORAGE_KEYS.SUPERVISOR, formData.supervisor, setSupervisorHistory, supervisorHistory),
+        saveToHistory(STORAGE_KEYS.SAMPLERS, formData.samplers, setSamplersHistory, samplersHistory),
+        saveToHistory(STORAGE_KEYS.REMARKS, formData.remarks, setRemarksHistory, remarksHistory),
+      ]);
 
       addSuccess(`Coal Sampling Report ${isUpdateMode ? 'updated' : 'submitted'} successfully!`);
       setTimeout(() => {
@@ -1009,7 +1132,7 @@ export default function RakeSampleForm() {
           <Card style={styles.card}>
             <Card.Title title="Agencies & Personnel" titleStyle={{ fontWeight: "bold", color: "#000000"}}/>
             <Card.Content>
-              <TextInput
+              {/* <TextInput
                 ref={samplingAgencyRef}
                 label="Sampling Agency"
                 value={formData?.samplingAgency}
@@ -1021,9 +1144,48 @@ export default function RakeSampleForm() {
                 }}
                 returnKeyType="next"
                 blurOnSubmit={false}
-              />
+              /> */}
+              <View>
+                <TextInput
+                  ref={samplingAgencyRef}
+                  label="Sampling Agency"
+                  value={formData?.samplingAgency}
+                  onChangeText={text => {
+                    setFormData({ ...formData, samplingAgency: text });
+                    setShowSamplingAgencySuggestions(true);
+                  }}
+                  onFocus={() => setShowSamplingAgencySuggestions(true)}
+                  style={styles.input}
+                  mode="outlined"
+                  onSubmitEditing={() => {
+                    supervisorRef.current?.focus();
+                    setShowSamplingAgencySuggestions(false);
+                  }}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                />
+                {showSamplingAgencySuggestions && samplingAgencyHistory.length > 0 && (
+                  <View style={styles.suggestionsContainer}>
+                    <ScrollView style={styles.suggestionsList} nestedScrollEnabled>
+                      {getFilteredSuggestions(formData.samplingAgency, samplingAgencyHistory).map((item, index) => (
+                        <TouchableWithoutFeedback
+                          key={index}
+                          onPress={() => {
+                            setFormData({ ...formData, samplingAgency: item });
+                            setShowSamplingAgencySuggestions(false);
+                          }}
+                        >
+                          <View style={styles.suggestionItem}>
+                            <Text style={styles.suggestionText}>{item}</Text>
+                          </View>
+                        </TouchableWithoutFeedback>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
 
-              <TextInput
+              {/* <TextInput
                 ref={supervisorRef}
                 label="Supervisor"
                 value={formData?.supervisor}
@@ -1035,9 +1197,51 @@ export default function RakeSampleForm() {
                 }}
                 returnKeyType="next"
                 blurOnSubmit={false}
-              />
+              /> */}
 
-              <TextInput
+              {/* Supervisor with Autocomplete */}
+              <View>
+                <TextInput
+                  ref={supervisorRef}
+                  label="Supervisor"
+                  value={formData?.supervisor}
+                  onChangeText={text => {
+                    setFormData({ ...formData, supervisor: text });
+                    setShowSupervisorSuggestions(true);
+                  }}
+                  onFocus={() => setShowSupervisorSuggestions(true)}
+                  style={styles.input}
+                  mode="outlined"
+                  onSubmitEditing={() => {
+                    samplersRef.current?.focus();
+                    setShowSupervisorSuggestions(false);
+                  }}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                />
+                {showSupervisorSuggestions && supervisorHistory.length > 0 && (
+                  <View style={styles.suggestionsContainer}>
+                    <ScrollView style={styles.suggestionsList} nestedScrollEnabled>
+                      {getFilteredSuggestions(formData.supervisor, supervisorHistory).map((item, index) => (
+                        <TouchableWithoutFeedback
+                          key={index}
+                          onPress={() => {
+                            setFormData({ ...formData, supervisor: item });
+                            setShowSupervisorSuggestions(false);
+                          }}
+                        >
+                          <View style={styles.suggestionItem}>
+                            <Text style={styles.suggestionText}>{item}</Text>
+                          </View>
+                        </TouchableWithoutFeedback>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
+
+              {/* <TextInput
                 ref={samplersRef}
                 label="Samplers"
                 value={formData?.samplers}
@@ -1049,7 +1253,49 @@ export default function RakeSampleForm() {
                 }}
                 returnKeyType="next"
                 blurOnSubmit={false}
-              />
+              /> */}
+
+              {/* Samplers with Autocomplete */}
+              <View>
+                <TextInput
+                  ref={samplersRef}
+                  label="Samplers"
+                  value={formData?.samplers}
+                  onChangeText={text => {
+                    setFormData({ ...formData, samplers: text });
+                    setShowSamplersSuggestions(true);
+                  }}
+                  onFocus={() => setShowSamplersSuggestions(true)}
+                  style={styles.input}
+                  mode="outlined"
+                  onSubmitEditing={() => {
+                    remarksRef.current?.focus();
+                    setShowSamplersSuggestions(false);
+                  }}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                />
+                {showSamplersSuggestions && samplersHistory.length > 0 && (
+                  <View style={styles.suggestionsContainer}>
+                    <ScrollView style={styles.suggestionsList} nestedScrollEnabled>
+                      {getFilteredSuggestions(formData.samplers, samplersHistory).map((item, index) => (
+                        <TouchableWithoutFeedback
+                          key={index}
+                          onPress={() => {
+                            setFormData({ ...formData, samplers: item });
+                            setShowSamplersSuggestions(false);
+                          }}
+                        >
+                          <View style={styles.suggestionItem}>
+                            <Text style={styles.suggestionText}>{item}</Text>
+                          </View>
+                        </TouchableWithoutFeedback>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
 
               <SelectComponentBYFORM
                 field={{ name: "allSampleBagsSealChecked", label: "All Sample Bags Seal Checked?" }}
@@ -1114,7 +1360,7 @@ export default function RakeSampleForm() {
                 onOpen={null}
               />
 
-              <TextInput
+              {/* <TextInput
                 ref={remarksRef}
                 label="Remarks"
                 value={`${formData?.remarks}`}
@@ -1127,7 +1373,48 @@ export default function RakeSampleForm() {
                   handleSubmit();
                 }}
                 returnKeyType="done"
-              />
+              /> */}
+
+              <View>
+                <TextInput
+                  ref={remarksRef}
+                  label="Remarks"
+                  value={`${formData?.remarks}`}
+                  onChangeText={text => {
+                    setFormData({ ...formData, remarks: text });
+                    setShowRemarksSuggestions(true);
+                  }}
+                  onFocus={() => setShowRemarksSuggestions(true)}
+                  style={[styles.input, {color: "#000000"}]}
+                  multiline
+                  numberOfLines={4}
+                  mode="outlined"
+                  onSubmitEditing={() => {
+                    handleSubmit();
+                    setShowRemarksSuggestions(false);
+                  }}
+                  returnKeyType="done"
+                />
+                {showRemarksSuggestions && remarksHistory.length > 0 && (
+                  <View style={styles.suggestionsContainer}>
+                    <ScrollView style={styles.suggestionsList} nestedScrollEnabled>
+                      {getFilteredSuggestions(formData.remarks, remarksHistory).map((item, index) => (
+                        <TouchableWithoutFeedback
+                          key={index}
+                          onPress={() => {
+                            setFormData({ ...formData, remarks: item });
+                            setShowRemarksSuggestions(false);
+                          }}
+                        >
+                          <View style={styles.suggestionItem}>
+                            <Text style={styles.suggestionText}>{item}</Text>
+                          </View>
+                        </TouchableWithoutFeedback>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
             </Card.Content>
             <View style={styles.cardBottom} />
           </Card>
@@ -1312,6 +1599,35 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: '#856404',
     fontSize: 15,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    maxHeight: 200,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    zIndex: 1000,
+  },
+  suggestionsList: {
+    maxHeight: 200,
+  },
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: '#333',
   },
 });
 

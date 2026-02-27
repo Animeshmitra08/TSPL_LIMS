@@ -2,7 +2,7 @@
   "expo": {
     "name": "TSPL_LIMS",
     "slug": "TSPL_LIMS",
-    "version": "3.3.0",
+    "version": "3.4.0",
     "orientation": "default",
     "icon": "./assets/images/LogoTspl.jpeg",
     "scheme": "tspllims",
@@ -21,7 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.TSPL_LIMS"
+      "package": "com.aondigicon.TSPLLIMS"
     },
     "web": {
       "bundler": "metro",
@@ -46,7 +46,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "b3257f7a-f74b-49d0-b51a-36d4cd6c8752"
+        "projectId": "db704700-1306-4a80-ab6e-87eaec6559fd"
       }
     }
   }

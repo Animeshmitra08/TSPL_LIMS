@@ -62,6 +62,22 @@ const LandingScreen = ({ navigation }: Props) => {
             </Button>
           </Card.Content>
         </Card>
+        : 
+        user?.userAuthorizations.some(auth => auth.path === "vehicleStatus") ?
+        <Card style={styles.card} mode="elevated">
+          <Card.Content>
+            <Button
+              mode="contained"
+              icon="car-info"
+              style={[styles.button, { backgroundColor: "#228dffff" }]}
+              contentStyle={styles.buttonContent}
+              labelStyle={styles.buttonLabel}
+              onPress={() => navigation.navigate("vehicleStatus")}
+            >
+              Vehicle Status
+            </Button>
+          </Card.Content>
+        </Card>
         : null
       }
       

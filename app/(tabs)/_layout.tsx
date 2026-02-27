@@ -52,7 +52,8 @@ export default function TabsLayout() {
   const { user, login, logout, resetPassword } = useAuth();
   const scheme = useColorScheme();
 
-  const API_Base_URL = process.env.EXPO_PRIVATE_LOGIN_URL || 'https://tsplindia.info/itmsapi/api';
+  // const API_Base_URL = process.env.EXPO_PRIVATE_LOGIN_URL || 'https://tsplindia.info/itmsapi/api';
+  const API_Base_URL = process.env.EXPO_PRIVATE_LOGIN_URL || 'https://tsplindia.info/TSPL_ITMS/api';
 
   useEffect(() => {
     // small timeout to simulate loading

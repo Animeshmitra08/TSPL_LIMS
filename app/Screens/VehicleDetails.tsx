@@ -96,7 +96,7 @@ export default function VehicleDetailsScreen() {
           />
         <Card.Content>
           {/* <Text style={styles.text}>Reg. No. : {vehicle.regno || "N/A"}</Text> */}
-          <Text style={styles.text}>Result : {vehicle.sM_RESULT || "N/A"}</Text>
+          {/* <Text style={styles.text}>Result : {vehicle.sM_RESULT || "N/A"}</Text> */}
           <Text style={styles.text}>ARB_TM : {vehicle.arB_TM || "N/A"}</Text>
           <Text style={styles.text}>ARB_VM : {vehicle.arB_VM || "N/A"}</Text>
           {/* <Text style={styles.text}>Status : {vehicle.status || "N/A"}</Text> */}
