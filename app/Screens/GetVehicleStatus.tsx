@@ -1,14 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { Text, Button, DataTable, Modal, Portal, Chip, Searchbar, Card } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
+import { FlatList } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const Api_base_url = process.env.EXPO_PUBLIC_BASE_URL;
 
 interface VehicleStatus {
   regno: string;
   gatepass: string;
+  sM_RESULT?: string;
+  arB_TM?: string;
+  arB_VM?: string;
+  status?: string;
+}
+
+interface TruckStatus {
+  regno: string;
   sM_RESULT?: string;
   arB_TM?: string;
   arB_VM?: string;
@@ -32,6 +42,16 @@ export default function GetVehicleStatus() {
   const [visible, setVisible] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleStatus | null>(null);
 
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchVehicleData();
+    setRefreshing(false);
+  };
+
   const formatDate = (date: Date) =>
     date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
@@ -48,33 +68,63 @@ export default function GetVehicleStatus() {
 
       const { tRegGatepass = [], ttruckStatus = [] } = response.data;
 
+      // Safety check (add this before mapping)
+      if (!Array.isArray(tRegGatepass) || !Array.isArray(ttruckStatus)) {
+        setVehicleData([]);
+        return;
+      }
+
+      // Create map (O(n))
+      const statusMap = new Map(
+        ttruckStatus.map((item: any) => [item.regno.trim(), item])
+      );
+
+      // Merge (O(n))
       const mergedData: VehicleStatus[] = tRegGatepass.map((regItem: any) => {
-        const statusMatch = ttruckStatus.find(
-          (statusItem: any) => statusItem.regno.trim() === regItem.regno.trim()
-        );
+        const statusMatch = statusMap.get(regItem.regno.trim());
+
         return {
           regno: regItem.regno?.trim() || "N/A",
           gatepass: regItem.gatepass?.trim() || "N/A",
           sM_RESULT: statusMatch?.sM_RESULT || "",
           arB_TM: statusMatch?.arB_TM || "",
           arB_VM: statusMatch?.arB_VM || "",
-          status: statusMatch?.status || "",
+          status: statusMatch?.status?.toUpperCase().trim() || "",
         };
       });
 
       setVehicleData(removeDuplicates(mergedData));
     } catch (error: any) {
-      const err = error.response.data.Data.ErrorInfo;
-      console.error('Login error:', err);
-      setError(`${err.Key} : ${err.Message}`);
+      console.error("API error:", error);
+
+      const err = error?.response?.data?.Data?.ErrorInfo;
+
+      if (err) {
+        setError(`${err.Key} : ${err.Message}`);
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     } finally {
+      setRefreshing(false);
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchVehicleData();
+    const timer = setTimeout(() => {
+      fetchVehicleData();
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [selectedDate]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   const handleOpenModal = (vehicle: VehicleStatus) => {
     setSelectedVehicle(vehicle);
@@ -86,17 +136,28 @@ export default function GetVehicleStatus() {
     setSelectedVehicle(null);
   };
 
-  const filteredData = vehicleData.filter((item) =>
-    item.regno.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const filteredData = useMemo(() => {
+    return vehicleData.filter((item) =>
+      item.regno.toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+  }, [vehicleData, debouncedSearch]);
+
+  const stats = useMemo(() => {
+    return {
+      total: filteredData.length,
+      accepted: filteredData.filter(v => v.status === 'ACCEPTED').length,
+      rejected: filteredData.filter(v => v.status === 'REJECTED').length,
+    };
+  }, [filteredData]);
+  
 
   return (
-    // <SafeAreaView style={styles.safeArea}>
+  <SafeAreaView style={{
+      flex: 1,
+    }} 
+    edges={["bottom", "left", "right"]}>
     <View style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContainer} 
-        showsVerticalScrollIndicator={false}
-      >
+
         <View style={styles.container}>
           {/* Date Selector Card */}
           <Card style={styles.card} elevation={2}>
@@ -136,20 +197,20 @@ export default function GetVehicleStatus() {
             <Card style={styles.statsCard} elevation={1}>
               <Card.Content style={styles.statsContent}>
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{filteredData.length}</Text>
+                  <Text style={styles.statNumber}>{stats.total}</Text>
                   <Text style={styles.statLabel}>Total Vehicles</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
                   <Text style={[styles.statNumber, { color: '#28a745' }]}>
-                    {filteredData.filter(v => v.status === 'ACCEPTED').length}
+                    {stats.accepted}
                   </Text>
                   <Text style={styles.statLabel}>Accepted</Text>
                 </View>
                 <View style={styles.statDivider} />
                 <View style={styles.statItem}>
                   <Text style={[styles.statNumber, { color: '#dc3545' }]}>
-                    {filteredData.filter(v => v.status === 'REJECTED').length}
+                    {stats.rejected}
                   </Text>
                   <Text style={styles.statLabel}>Rejected</Text>
                 </View>
@@ -187,56 +248,59 @@ export default function GetVehicleStatus() {
               </ScrollView>
 
               {/* Table Body */}
-              <ScrollView style={styles.tableBodyScroll} showsVerticalScrollIndicator={true}>
-                {/* <ScrollView horizontal showsHorizontalScrollIndicator={false}> */}
-                  <DataTable style={styles.table}>
-                    {filteredData.map((item, index) => (
-                      <DataTable.Row 
-                        key={index} 
-                        style={[
-                          styles.tableRow,
-                          index % 2 === 0 ? styles.evenRow : styles.oddRow
-                        ]}
+              <FlatList
+                data={filteredData}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                keyExtractor={(item) => item.regno}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={5}
+                removeClippedSubviews
+                renderItem={({ item, index }) => (
+                  <DataTable.Row
+                    style={[
+                      styles.tableRow,
+                      index % 2 === 0 ? styles.evenRow : styles.oddRow,
+                    ]}
+                  >
+                    <DataTable.Cell style={styles.cell}>
+                      <Text style={styles.regnoText}>{item.regno}</Text>
+                    </DataTable.Cell>
+
+                    <DataTable.Cell style={styles.cell}>
+                      {item.status ? (
+                        <Chip
+                          icon={item.status === "ACCEPTED" ? "check-circle" : "close-circle"}
+                          style={[
+                            styles.statusChip,
+                            { backgroundColor: item.status === "ACCEPTED" ? "#d4edda" : "#f8d7da" },
+                          ]}
+                          textStyle={[
+                            styles.chipText,
+                            { color: item.status === "ACCEPTED" ? "#155724" : "#721c24" },
+                          ]}
+                        >
+                          {item.status}
+                        </Chip>
+                      ) : (
+                        <Chip icon="clock-outline" style={styles.pendingChip} textStyle={styles.pendingChipText}>
+                          Pending
+                        </Chip>
+                      )}
+                    </DataTable.Cell>
+
+                    <DataTable.Cell style={styles.cellAction}>
+                      <TouchableOpacity
+                        style={styles.viewButton}
+                        onPress={() => handleOpenModal(item)}
                       >
-                        <DataTable.Cell style={styles.cell}>
-                          <View style={styles.regnoContainer}>
-                            <Text style={styles.regnoText}>{item.regno}</Text>
-                          </View>
-                        </DataTable.Cell>
-                        <DataTable.Cell style={styles.cell}>
-                          {item.status ? (
-                            <Chip
-                              icon={item.status === "ACCEPTED" ? "check-circle" : "close-circle"}
-                              style={[
-                                styles.statusChip,
-                                { backgroundColor: item.status === "ACCEPTED" ? "#d4edda" : "#f8d7da" },
-                              ]}
-                              textStyle={[
-                                styles.chipText,
-                                { color: item.status === "ACCEPTED" ? "#155724" : "#721c24" },
-                              ]}
-                            >
-                              {item.status}
-                            </Chip>
-                          ) : (
-                            <Chip icon="clock-outline" style={styles.pendingChip} textStyle={styles.pendingChipText}>
-                              Pending
-                            </Chip>
-                          )}
-                        </DataTable.Cell>
-                        <DataTable.Cell style={styles.cellAction}>
-                          <TouchableOpacity 
-                            style={styles.viewButton}
-                            onPress={() => handleOpenModal(item)}
-                          >
-                            <Text style={styles.viewButtonText}>View</Text>
-                          </TouchableOpacity>
-                        </DataTable.Cell>
-                      </DataTable.Row>
-                    ))}
-                  </DataTable>
-                {/* </ScrollView> */}
-              </ScrollView>
+                        <Text style={styles.viewButtonText}>View</Text>
+                      </TouchableOpacity>
+                    </DataTable.Cell>
+                  </DataTable.Row>
+                )}
+              />
             </Card>
           ) : (
             !loading && !error && (
@@ -297,9 +361,8 @@ export default function GetVehicleStatus() {
             </TouchableOpacity>
           </Modal>
         </Portal>
-      </ScrollView>
       </View>
-    // </SafeAreaView>
+    </SafeAreaView>
   );
 }
 

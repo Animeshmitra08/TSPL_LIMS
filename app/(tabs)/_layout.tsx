@@ -96,14 +96,9 @@ export default function TabsLayout() {
         `${API_Base_URL}/TSPL_Users/${username.toUpperCase()}`
       );
 
-      console.log(res);
-      
-
       if (res.data?.success) {
         const userData = res.data.data;        
         const decryptedPassword = decrypt(userData.password);
-
-        console.log(userData);
         
 
         // Check for default password BEFORE login

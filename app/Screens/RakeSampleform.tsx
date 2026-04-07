@@ -144,23 +144,30 @@ export default function RakeSampleForm() {
     loadHistory();
   }, []);
 
-  const saveToHistory = async (key: string, value: string, setHistory: Function, currentHistory: string[]) => {
-    if (!value || value.trim() === '') return;
-    
+  const saveToHistory = async (
+    key: string,
+    value: string,
+    setHistory: Function
+  ) => {
+    if (!value || value.trim() === "") return;
+  
     const trimmedValue = value.trim();
-    
-    // Remove if already exists and add to beginning (most recent first)
-    const updatedHistory = [
-      trimmedValue,
-      ...currentHistory.filter(item => item !== trimmedValue)
-    ].slice(0, 10); // Keep only last 10 entries
-
-    setHistory(updatedHistory);
-    
+  
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(updatedHistory));
+      // Always read the latest persisted array rather than a captured snapshot
+      const stored = await AsyncStorage.getItem(key);
+      const latest: string[] = stored ? JSON.parse(stored) : [];
+  
+      const updated = [
+        trimmedValue,
+        ...latest.filter((item) => item !== trimmedValue),
+      ].slice(0, 10);
+  
+      // Persist first, then update state
+      await AsyncStorage.setItem(key, JSON.stringify(updated));
+      setHistory(updated);
     } catch (error) {
-      console.error('Error saving history:', error);
+      console.error("Error saving history:", error);
     }
   };
 
@@ -715,75 +722,43 @@ export default function RakeSampleForm() {
 
   const handleSubmit = async () => {
     const actualBagCount = Number(formData.noOfBagsCollected) || 0;
-  
-    // Only use the first 'actualBagCount' boxes for validation and submission
     const boxesToValidate = boxes.slice(0, actualBagCount);
-
-    // Validate form first
+  
+    // ── Validate ──────────────────────────────────────────────
     if (!formValidaty(formData)) {
-      // Get detailed validation errors using the validateForm function
-      const { missingFields, fieldRefs } = validateForm();
-      
+      const { missingFields } = validateForm();
+  
       if (missingFields.length > 0) {
-        // Display each missing field as a separate error alert with staggered timing
         missingFields.forEach((field, index) => {
           setTimeout(() => {
             addError(`Please enter: ${field}`);
           }, index * 150);
         });
-
-        // Focus on the first missing field
+  
         const firstMissingField = missingFields[0].toLowerCase();
-        // setTimeout(() => {
-        //   if (firstMissingField.includes('rake no')) {
-        //     rakeNoRef.current?.focus();
-        //     scrollToInput(rakeNoRef);
-        //   } else if (firstMissingField.includes('commodity')) {
-        //     commodityRef.current?.focus();
-        //     scrollToInput(commodityRef);
-        //   } else if (firstMissingField.includes('bags collected')) {
-        //     noOfBagsRef.current?.focus();
-        //     scrollToInput(noOfBagsRef);
-        //   } else if (firstMissingField.includes('sampling agency')) {
-        //     samplingAgencyRef.current?.focus();
-        //     scrollToInput(samplingAgencyRef);
-        //   } else if (firstMissingField.includes('supervisor')) {
-        //     supervisorRef.current?.focus();
-        //     scrollToInput(supervisorRef);
-        //   } else if (firstMissingField.includes('samplers')) {
-        //     samplersRef.current?.focus();
-        //     scrollToInput(samplersRef);
-        //   } else if (firstMissingField.includes('remarks')) {
-        //     remarksRef.current?.focus();
-        //     scrollToInput(remarksRef);
-        //   } else if (firstMissingField.includes('wagons')) {
-        //     noOfWagonsRef.current?.focus();
-        //     scrollToInput(noOfWagonsRef);
-        //   } else if (firstMissingField.includes('seal') || firstMissingField.includes('bag')) {
-        //     // If the error is related to bags/seals, scroll to the bags section
-        //     scrollToInput(noOfBagsRef);
-        //   }
-        // }, 500);
         setTimeout(() => {
-          if (firstMissingField.includes('rake no')) {
+          if (firstMissingField.includes("rake no")) {
             rakeNoRef.current?.focus();
-          } else if (firstMissingField.includes('commodity')) {
+          } else if (firstMissingField.includes("commodity")) {
             commodityRef.current?.focus();
-          } else if (firstMissingField.includes('bags collected')) {
+          } else if (firstMissingField.includes("bags collected")) {
             noOfBagsRef.current?.focus();
-          } else if (firstMissingField.includes('sampling agency')) {
+          } else if (firstMissingField.includes("sampling agency")) {
             samplingAgencyRef.current?.focus();
-          } else if (firstMissingField.includes('supervisor')) {
+          } else if (firstMissingField.includes("supervisor")) {
             supervisorRef.current?.focus();
-          } else if (firstMissingField.includes('samplers')) {
+          } else if (firstMissingField.includes("samplers")) {
             samplersRef.current?.focus();
-          } else if (firstMissingField.includes('remarks')) {
+          } else if (firstMissingField.includes("remarks")) {
             remarksRef.current?.focus();
-          } else if (firstMissingField.includes('wagons')) {
+          } else if (firstMissingField.includes("wagons")) {
             noOfWagonsRef.current?.focus();
           }
         }, 500);
       }
+  
+      // ← FIX: return here so we never reach the API call
+      return;
     }
 
     let plantDate = "";
@@ -867,7 +842,7 @@ export default function RakeSampleForm() {
         t_DROPDOWN_DATA: [{ mandt: "", field: "", value: "" }]
       };
 
-      console.log("Payload:", JSON.stringify(payload, null, 2));
+      // console.log("Payload:", JSON.stringify(payload, null, 2));
 
       const response = await axios.post(
         `${Api_Base}/Sampling/PTYPE/COAL`,
@@ -875,15 +850,15 @@ export default function RakeSampleForm() {
         { headers: { "Content-Type": "application/json" } }
       );
 
-      console.log(response.data);
+      // console.log(response.data);
 
 
       // After successful submission, save to history
       await Promise.all([
-        saveToHistory(STORAGE_KEYS.SAMPLING_AGENCY, formData.samplingAgency, setSamplingAgencyHistory, samplingAgencyHistory),
-        saveToHistory(STORAGE_KEYS.SUPERVISOR, formData.supervisor, setSupervisorHistory, supervisorHistory),
-        saveToHistory(STORAGE_KEYS.SAMPLERS, formData.samplers, setSamplersHistory, samplersHistory),
-        saveToHistory(STORAGE_KEYS.REMARKS, formData.remarks, setRemarksHistory, remarksHistory),
+        saveToHistory(STORAGE_KEYS.SAMPLING_AGENCY, formData.samplingAgency, setSamplingAgencyHistory),
+        saveToHistory(STORAGE_KEYS.SUPERVISOR, formData.supervisor, setSupervisorHistory),
+        saveToHistory(STORAGE_KEYS.SAMPLERS, formData.samplers, setSamplersHistory),
+        saveToHistory(STORAGE_KEYS.REMARKS, formData.remarks, setRemarksHistory),
       ]);
 
       addSuccess(`Coal Sampling Report ${isUpdateMode ? 'updated' : 'submitted'} successfully!`);
@@ -1665,12 +1640,12 @@ export function formValidaty(formData: any): boolean {
     const value = formData[field];
 
     if (typeof value === "string" && value.trim() === "") {
-      console.log("Missing string field:", field, value);
+      // console.log("Missing string field:", field, value);
       return false;
     }
 
     if (value === undefined || value === null) {
-      console.log("Missing required field:", field, value);
+      // console.log("Missing required field:", field, value);
       return false;
     }
   }

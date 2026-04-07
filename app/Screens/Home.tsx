@@ -528,11 +528,11 @@ const handleSubmit = useCallback(async () => {
       entrY_BY: user?.fullname || "User"
     }));
 
-  console.log('Debug - Submitting data:');
-  console.log('Actual bag count:', actualBagCount);
-  console.log('Boxes to validate:', boxesToValidate.length);
-  console.log('Cleaned boxes for submission:', cleanedBoxes.length);
-  console.log('Cleaned boxes:', cleanedBoxes);
+  // console.log('Debug - Submitting data:');
+  // console.log('Actual bag count:', actualBagCount);
+  // console.log('Boxes to validate:', boxesToValidate.length);
+  // console.log('Cleaned boxes for submission:', cleanedBoxes.length);
+  // console.log('Cleaned boxes:', cleanedBoxes);
 
   const payload = {
     t_COAL_SAMPLING: [],
@@ -557,8 +557,6 @@ const handleSubmit = useCallback(async () => {
     t_DROPDOWN_DATA: []
   };
 
-  console.log('Final payload:', JSON.stringify(payload, null, 2));
-
   try {
     addInfo("Submitting biomass sampling data...", { showCloseButton: false });
 
@@ -568,7 +566,6 @@ const handleSubmit = useCallback(async () => {
       { headers: { "Content-Type": "application/json" } }
     );
 
-    console.log("Submission success:", data);
     
     addSuccess(`Biomass Sampling Report ${isUpdateMode ? 'updated' : 'submitted'} successfully!`);
     // addInfo(`Truck ${formData.truckNumber} - ${actualBagCount} bags processed`);

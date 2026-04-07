@@ -1,22 +1,31 @@
-import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import React from 'react';
-import { Alert, Dimensions, StyleSheet, useColorScheme, View } from 'react-native';
-import { Avatar, Button, Divider, Surface, Text } from 'react-native-paper';
-import HomeScreen from '../Screens/Home';
-import RakeSampleForm from '../Screens/RakeSampleform';
+import { useAuth } from "@/context/AuthContext";
+import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
+import {
+  createDrawerNavigator,
+  DrawerContentScrollView,
+  DrawerItemList,
+} from "@react-navigation/drawer";
 import { LinearGradient } from "expo-linear-gradient";
-import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import LandingScreen from '../Screens/Landing';
-import { useAuth } from '@/context/AuthContext';
-import GetVehicleStatus from '../Screens/GetVehicleStatus';
-import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
+import React from "react";
+import {
+  Alert,
+  Dimensions,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from "react-native";
+import { Avatar, Button, Divider, Surface, Text } from "react-native-paper";
+import GetVehicleStatus from "../Screens/GetVehicleStatus";
+import HomeScreen from "../Screens/Home";
+import LandingScreen from "../Screens/Landing";
+import RakeSampleForm from "../Screens/RakeSampleform";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 type DrawerNavigatorProps = {
   onLogout: () => Promise<void>;
 };
-
 
 export type DrawerParamList = {
   Home: undefined;
@@ -24,7 +33,6 @@ export type DrawerParamList = {
   coalSampling: undefined;
   vehicleStatus: undefined;
 };
-
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
@@ -77,24 +85,22 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
   } as const;
 
   // ✅ Filter drawer items based on user.userAuthorizations
-  const authorizedRoutes =
-    user?.userAuthorizations?.map((a) => a.path).filter((path) => path in drawerScreens) ?? [];
+  // const authorizedRoutes =
+  //   user?.userAuthorizations?.map((a) => a.path).filter((path) => path in drawerScreens) ?? [];
 
-  // ✅ Move "Home" to the first position if it exists, otherwise optionally add it
-  if (authorizedRoutes.includes("Home")) {
-    // Remove it and insert at the start
-    const withoutHome = authorizedRoutes.filter((p) => p !== "Home");
-    authorizedRoutes.splice(0, authorizedRoutes.length, "Home", ...withoutHome);
-  } else {
-    // Always include Home if needed
-    authorizedRoutes.unshift("Home");
-  }
-
-  console.log(authorizedRoutes);
+  // // ✅ Move "Home" to the first position if it exists, otherwise optionally add it
+  // if (authorizedRoutes.includes("Home")) {
+  //   // Remove it and insert at the start
+  //   const withoutHome = authorizedRoutes.filter((p) => p !== "Home");
+  //   authorizedRoutes.splice(0, authorizedRoutes.length, "Home", ...withoutHome);
+  // } else {
+  //   // Always include Home if needed
+  //   authorizedRoutes.unshift("Home");
+  // }
 
   return (
     <Drawer.Navigator
-      initialRouteName='Home'
+      initialRouteName="Home"
       screenOptions={{
         headerShown: true,
         drawerStyle: {
@@ -103,7 +109,7 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           borderBottomRightRadius: 25,
           overflow: "hidden",
           width: width * 0.85,
-          elevation: 10
+          elevation: 10,
         },
         drawerActiveTintColor: colorScheme === "dark" ? "#4fc3f7" : "#1976d2",
         drawerInactiveTintColor: colorScheme === "dark" ? "#b0b0b0" : "#666",
@@ -118,63 +124,65 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
           borderRadius: 12,
           paddingHorizontal: 8,
         },
-        drawerActiveBackgroundColor: colorScheme === "dark" ? "#2d5a87" : "#e3f2fd",
+        drawerActiveBackgroundColor:
+          colorScheme === "dark" ? "#2d5a87" : "#e3f2fd",
       }}
       drawerContent={(props) => <CustomDrawer {...props} onLogout={onLogout} />}
     >
-      {(authorizedRoutes as (keyof typeof drawerScreens)[]).map((routeKey) => {
-        const screen = drawerScreens[routeKey];
-        return (
-          <Drawer.Screen
-            key={routeKey}
-            name={routeKey as any}
-            component={screen.component}
-            options={{
-              drawerIcon: ({ color, size, focused }) =>
-                screen.icon(color, size, focused),
-              drawerLabel: screen.label,
-              headerBackground: () => (
-                <LinearGradient
-                  colors={screen.gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ flex: 1 }}
-                />
-              ),
-              headerTitle: screen.label,
-              headerTintColor: "#fff",
-              headerTitleStyle: {
-                fontWeight: "bold",
-                fontSize: 20,
-              },
-            }}
-          />
-        );
-      })}
+      {(Object.keys(drawerScreens) as Array<keyof typeof drawerScreens>).map(
+        (routeKey) => {
+          const screen = drawerScreens[routeKey];
+          return (
+            <Drawer.Screen
+              key={routeKey}
+              name={routeKey as any}
+              component={screen.component}
+              options={{
+                drawerIcon: ({ color, size, focused }) =>
+                  screen.icon(color, size, focused),
+                drawerLabel: screen.label,
+                headerBackground: () => (
+                  <LinearGradient
+                    colors={screen.gradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ flex: 1 }}
+                  />
+                ),
+                headerTitle: screen.label,
+                headerTintColor: "#fff",
+                headerTitleStyle: {
+                  fontWeight: "bold",
+                  fontSize: 20,
+                },
+              }}
+            />
+          );
+        },
+      )}
     </Drawer.Navigator>
   );
 }
 
-
 async function handleLogout(onLogout: () => Promise<void>) {
   Alert.alert(
-    "Logout Confirmation", 
-    "Are you sure you want to logout? This will redirect you to the login screen.", 
+    "Logout Confirmation",
+    "Are you sure you want to logout? This will redirect you to the login screen.",
     [
       {
         text: "Cancel",
         style: "cancel",
-        onPress: () => { }
+        onPress: () => {},
       },
       {
         text: "Logout",
         style: "destructive",
         onPress: async () => {
           await onLogout();
-        }
-      }
+        },
+      },
     ],
-    { cancelable: true }
+    { cancelable: true },
   );
 }
 
@@ -187,34 +195,41 @@ function CustomDrawer(props: any) {
   };
 
   return (
-    <DrawerContentScrollView 
-      {...props} 
+    <DrawerContentScrollView
+      {...props}
       contentContainerStyle={styles.drawerContent}
       showsVerticalScrollIndicator={false}
     >
       {/* Enhanced Header Section */}
-      <Surface style={[styles.headerSurface, {
-        backgroundColor: colorScheme === "dark" ? "#2d2d2d" : "#ffffff"
-      }]} elevation={2}>
+      <Surface
+        style={[
+          styles.headerSurface,
+          {
+            backgroundColor: colorScheme === "dark" ? "#2d2d2d" : "#ffffff",
+          },
+        ]}
+        elevation={2}
+      >
         <LinearGradient
-          colors={colorScheme === "dark" 
-            ? ["#1e3a8a", "#1e40af"] 
-            : ["#3b82f6", "#1d4ed8"]
+          colors={
+            colorScheme === "dark"
+              ? ["#1e3a8a", "#1e40af"]
+              : ["#3b82f6", "#1d4ed8"]
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.avatarContainer}>
-            <Avatar.Text 
-              label={getInitials(user?.emailid || "")} 
-              size={68} 
+            <Avatar.Text
+              label={getInitials(user?.emailid || "")}
+              size={68}
               style={styles.avatar}
               labelStyle={styles.avatarText}
             />
             <View style={styles.statusIndicator} />
           </View>
-          
+
           <View style={styles.userInfo}>
             <Text style={styles.welcomeText}>Welcome</Text>
             <Text style={styles.emailText} numberOfLines={1}>
@@ -226,9 +241,14 @@ function CustomDrawer(props: any) {
 
       {/* Navigation Items */}
       <View style={styles.navigationSection}>
-        <Text style={[styles.sectionTitle, {
-          color: colorScheme === "dark" ? "#b0b0b0" : "#666"
-        }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: colorScheme === "dark" ? "#b0b0b0" : "#666",
+            },
+          ]}
+        >
           NAVIGATION
         </Text>
         <DrawerItemList {...props} />
@@ -236,20 +256,31 @@ function CustomDrawer(props: any) {
 
       {/* Enhanced Logout Button */}
       <View style={styles.logoutSection}>
-        <Divider style={[styles.divider, {
-          backgroundColor: colorScheme === "dark" ? "#404040" : "#e0e0e0"
-        }]} />
-        
-        <Surface style={[styles.logoutButtonSurface, {
-          backgroundColor: colorScheme === "dark" ? "#2d2d2d" : "#ffffff"
-        }]} elevation={1}>
+        <Divider
+          style={[
+            styles.divider,
+            {
+              backgroundColor: colorScheme === "dark" ? "#404040" : "#e0e0e0",
+            },
+          ]}
+        />
+
+        <Surface
+          style={[
+            styles.logoutButtonSurface,
+            {
+              backgroundColor: colorScheme === "dark" ? "#2d2d2d" : "#ffffff",
+            },
+          ]}
+          elevation={1}
+        >
           <Button
             icon="logout"
             mode="contained"
             buttonColor={colorScheme === "dark" ? "#d32f2f" : "#f44336"}
             textColor="#fff"
             onPress={async () => {
-              await handleLogout(logout)
+              await handleLogout(logout);
             }}
             style={styles.logoutButton}
             labelStyle={styles.logoutButtonText}
@@ -262,7 +293,7 @@ function CustomDrawer(props: any) {
         {/* App Version Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Design & Developed by:{' '}
+            Design & Developed by:{" "}
             <Text style={styles.footerBrandBlue}>AON </Text>
             <Text style={styles.footerBrandOrange}>DIGICON </Text>
             <Text style={styles.footerBrandBlue}>LLP</Text>
@@ -280,63 +311,63 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 28,
     height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 6,
   },
   focusedIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   headerSurface: {
     margin: 16,
     marginBottom: 24,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   headerGradient: {
     padding: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   avatarContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: 16,
   },
   avatar: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   avatarText: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   statusIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 4,
     right: 4,
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#4caf50',
+    backgroundColor: "#4caf50",
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: "#fff",
   },
   userInfo: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   welcomeText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emailText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    fontWeight: '500',
+    color: "rgba(255, 255, 255, 0.9)",
+    textAlign: "center",
+    fontWeight: "500",
   },
   navigationSection: {
     flex: 1,
@@ -344,7 +375,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginHorizontal: 24,
     marginBottom: 8,
     letterSpacing: 1,
@@ -360,7 +391,7 @@ const styles = StyleSheet.create({
   logoutButtonSurface: {
     marginHorizontal: 16,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   logoutButton: {
     borderRadius: 12,
@@ -368,39 +399,39 @@ const styles = StyleSheet.create({
   },
   logoutButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     letterSpacing: 0.5,
   },
   logoutButtonContent: {
     height: 50,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   footer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 16,
   },
   versionText: {
     fontSize: 12,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   footerText: {
-    textAlign: 'center',
-    color: '#333',
+    textAlign: "center",
+    color: "#333",
     fontSize: 8,
-    fontStyle: 'italic'
+    fontStyle: "italic",
   },
 
   footerBrandBlue: {
-    color: '#1b0886ff',
-    fontWeight: '800',
+    color: "#1b0886ff",
+    fontWeight: "800",
     fontSize: 12,
-    fontStyle: 'normal'
+    fontStyle: "normal",
   },
 
   footerBrandOrange: {
-    color: '#d76902ff',
-    fontWeight: '800',
+    color: "#d76902ff",
+    fontWeight: "800",
     fontSize: 12,
-    fontStyle: 'normal'
+    fontStyle: "normal",
   },
 });
