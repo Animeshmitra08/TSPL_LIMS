@@ -7,7 +7,7 @@ import {
   DrawerItemList,
 } from "@react-navigation/drawer";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Alert,
   Dimensions,
@@ -87,8 +87,19 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
   // ✅ Filter drawer items based on user.userAuthorizations
   // const authorizedRoutes =
   //   user?.userAuthorizations?.map((a) => a.path).filter((path) => path in drawerScreens) ?? [];
+  const authorizedRoutes = useMemo(() => {
+    const routes =
+      user?.userAuthorizations
+        ?.map((a) => a.path)
+        .filter((path): path is keyof typeof drawerScreens => path in drawerScreens) ?? [];
 
-  // // ✅ Move "Home" to the first position if it exists, otherwise optionally add it
+    // Ensure Home is first
+    const uniqueRoutes = Array.from(new Set(["Home", ...routes]));
+
+    return uniqueRoutes;
+  }, [user]);
+
+  // ✅ Move "Home" to the first position if it exists, otherwise optionally add it
   // if (authorizedRoutes.includes("Home")) {
   //   // Remove it and insert at the start
   //   const withoutHome = authorizedRoutes.filter((p) => p !== "Home");
@@ -129,37 +140,36 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
       }}
       drawerContent={(props) => <CustomDrawer {...props} onLogout={onLogout} />}
     >
-      {(Object.keys(drawerScreens) as Array<keyof typeof drawerScreens>).map(
-        (routeKey) => {
-          const screen = drawerScreens[routeKey];
-          return (
-            <Drawer.Screen
-              key={routeKey}
-              name={routeKey as any}
-              component={screen.component}
-              options={{
-                drawerIcon: ({ color, size, focused }) =>
-                  screen.icon(color, size, focused),
-                drawerLabel: screen.label,
-                headerBackground: () => (
-                  <LinearGradient
-                    colors={screen.gradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{ flex: 1 }}
-                  />
-                ),
-                headerTitle: screen.label,
-                headerTintColor: "#fff",
-                headerTitleStyle: {
-                  fontWeight: "bold",
-                  fontSize: 20,
-                },
-              }}
-            />
-          );
-        },
-      )}
+      {authorizedRoutes.map((routeKey) => {
+        const screen = drawerScreens[routeKey as keyof typeof drawerScreens];
+
+        return (
+          <Drawer.Screen
+            key={routeKey}
+            name={routeKey as any}
+            component={screen.component}
+            options={{
+              drawerIcon: ({ color, size, focused }) =>
+                screen.icon(color, size, focused),
+              drawerLabel: screen.label,
+              headerBackground: () => (
+                <LinearGradient
+                  colors={screen.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ flex: 1 }}
+                />
+              ),
+              headerTitle: screen.label,
+              headerTintColor: "#fff",
+              headerTitleStyle: {
+                fontWeight: "bold",
+                fontSize: 20,
+              },
+            }}
+          />
+        );
+      })}
     </Drawer.Navigator>
   );
 }
