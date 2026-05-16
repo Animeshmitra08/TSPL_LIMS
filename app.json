@@ -2,7 +2,7 @@
   "expo": {
     "name": "TSPL_LIMS",
     "slug": "TSPL_LIMS",
-    "version": "3.6.0",
+    "version": "3.6.2",
     "orientation": "default",
     "icon": "./assets/images/LogoTspl.png",
     "scheme": "tspllims",

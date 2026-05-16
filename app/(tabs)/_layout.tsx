@@ -52,8 +52,8 @@ export default function TabsLayout() {
   const { user, login, logout, resetPassword } = useAuth();
   const scheme = useColorScheme();
 
-  // const API_Base_URL = process.env.EXPO_PRIVATE_LOGIN_URL || 'https://tsplindia.info/itmsapi/api';
-  const API_Base_URL = process.env.EXPO_PRIVATE_LOGIN_URL || 'https://tsplindia.info/TSPL_ITMS/api';
+  // const API_Base_URL = process.env.EXPO_PUBLIC_LOGIN_URL || 'https://tsplindia.info/itmsapi/api';
+  const API_Base_URL = process.env.EXPO_PUBLIC_LOGIN_URL || 'https://tsplindia.info/TSPL_ITMS/api';
 
   useEffect(() => {
     // small timeout to simulate loading
@@ -96,6 +96,9 @@ export default function TabsLayout() {
         `${API_Base_URL}/TSPL_Users/${username.toUpperCase()}`
       );
 
+      console.log(res.data);
+      
+
       if (res.data?.success) {
         const userData = res.data.data;        
         const decryptedPassword = decrypt(userData.password);
@@ -123,7 +126,7 @@ export default function TabsLayout() {
         setAlertType('error');
       }
     } catch (error : any) {
-      const err = error.response.data.Data.ErrorInfo;
+      const err = error?.response?.data?.Data?.ErrorInfo;
       console.error('Login error:', err);
       setAlertMessage(`${err.Key} : ${err.Message}`);
       setAlertType('error');
