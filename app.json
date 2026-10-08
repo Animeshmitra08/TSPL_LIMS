@@ -7,7 +7,6 @@
     "icon": "./assets/images/LogoTspl.png",
     "scheme": "tspllims",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.aondigicon.TSPLLIMS",
@@ -20,8 +19,11 @@
         "foregroundImage": "./assets/images/LogoTspl.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.aondigicon.TSPLLIMS"
+      "package": "com.aondigicon.TSPLLIMS",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +40,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera to scan sample QR codes."
+        }
       ]
     ],
     "experiments": {
@@ -46,7 +54,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "b3257f7a-f74b-49d0-b51a-36d4cd6c8752"
+        "projectId": "44516200-8868-4a3b-bc8e-1f8fe2f24076"
       }
     }
   }

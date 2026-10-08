@@ -6,6 +6,8 @@ import {
   DrawerContentScrollView,
   DrawerItemList,
 } from "@react-navigation/drawer";
+import { NavigationIndependentTree } from "@react-navigation/core";
+import { NavigationContainer } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo } from "react";
 import {
@@ -19,7 +21,9 @@ import { Avatar, Button, Divider, Surface, Text } from "react-native-paper";
 import GetVehicleStatus from "../Screens/GetVehicleStatus";
 import HomeScreen from "../Screens/Home";
 import LandingScreen from "../Screens/Landing";
+import MoistureBalanceScreen from "../Screens/MoistureBalance";
 import RakeSampleForm from "../Screens/RakeSampleform";
+import WeightBalanceScreen from "../Screens/WeightBalance";
 
 const { width } = Dimensions.get("window");
 
@@ -32,6 +36,8 @@ export type DrawerParamList = {
   biomassSampling: undefined;
   coalSampling: undefined;
   vehicleStatus: undefined;
+  weightBalance: undefined;
+  moistureBalance: undefined;
 };
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
@@ -82,6 +88,26 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
       ),
       gradient: ["#193b86ff", "#ec905bff"],
     },
+    weightBalance: {
+      component: WeightBalanceScreen,
+      label: "Weighing Balance",
+      icon: (color: string, size: number, focused: boolean) => (
+        <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
+          <FontAwesome5 name="balance-scale" size={size} color={color} />
+        </View>
+      ),
+      gradient: ["#193b86ff", "#276dbdff"],
+    },
+    moistureBalance: {
+      component: MoistureBalanceScreen,
+      label: "Moisture Analyzer",
+      icon: (color: string, size: number, focused: boolean) => (
+        <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
+          <FontAwesome5 name="tint" size={size} color={color} />
+        </View>
+      ),
+      gradient: ["#193b86ff", "#276dbdff"],
+    },
   } as const;
 
   // ✅ Filter drawer items based on user.userAuthorizations
@@ -93,7 +119,9 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
         ?.map((a) => a.path)
         .filter((path): path is keyof typeof drawerScreens => path in drawerScreens) ?? [];
 
-    // Ensure Home is first
+    // Ensure Home is first. weightBalance/moistureBalance are forced in for
+    // now (not yet driven by userAuthorizations) — remove this once that's
+    // wired up.
     const uniqueRoutes = Array.from(new Set(["Home", ...routes]));
 
     return uniqueRoutes;
@@ -109,7 +137,18 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
   //   authorizedRoutes.unshift("Home");
   // }
 
+  // Rendered as a plain nested component inside app/(tabs)/_layout.tsx
+  // (an expo-router screen), not as an expo-router layout file — so this
+  // navigator sits below expo-router's own NavigationContainer in the tree,
+  // but as of SDK 56 expo-router no longer exposes that container to a
+  // separately-created navigator like this one, so it needs its own.
+  // NavigationIndependentTree is React Navigation v7's documented way to
+  // nest one self-contained navigation tree inside another app rather than
+  // register against the (unreachable) outer one — replaces the
+  // NavigationContainer `independent` prop from v5/v6.
   return (
+    <NavigationIndependentTree>
+    <NavigationContainer>
     <Drawer.Navigator
       initialRouteName="Home"
       screenOptions={{
@@ -171,6 +210,8 @@ export default function DrawerNavigator({ onLogout }: DrawerNavigatorProps) {
         );
       })}
     </Drawer.Navigator>
+    </NavigationContainer>
+    </NavigationIndependentTree>
   );
 }
 

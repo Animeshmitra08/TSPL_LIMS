@@ -104,13 +104,18 @@ export default function LoginPage({ onLogin, onResetPassword }: LoginPageProps) 
         {/* Form Card */}
         <Card style={styles.card}>
           <Card.Content style={styles.cardContent}>
-            {/* Username Input */}
+            {/* The backend looks this up by full email address (TSPL_Users),
+                not a short username — labeled "Username" would otherwise
+                invite typing something like "labcapture" instead of
+                "labcapture@gmail.com", which the lookup won't match. */}
             <TextInput
               mode="outlined"
-              label="Username"
+              label="Email"
               value={username}
               onChangeText={setUsername}
-              left={<TextInput.Icon icon="account" />}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              left={<TextInput.Icon icon="email" />}
               style={styles.input}
             />
 

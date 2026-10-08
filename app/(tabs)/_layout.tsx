@@ -52,8 +52,7 @@ export default function TabsLayout() {
   const { user, login, logout, resetPassword } = useAuth();
   const scheme = useColorScheme();
 
-  // const API_Base_URL = process.env.EXPO_PUBLIC_LOGIN_URL || 'https://tsplindia.info/itmsapi/api';
-  const API_Base_URL = process.env.EXPO_PUBLIC_LOGIN_URL || 'https://tsplindia.info/TSPL_ITMS/api';
+  const API_Base_URL = process.env.EXPO_PUBLIC_LOGIN_URL;
 
   useEffect(() => {
     // small timeout to simulate loading
@@ -97,20 +96,29 @@ export default function TabsLayout() {
       );
 
       console.log(res.data);
-      
 
-      if (res.data?.success) {
-        const userData = res.data.data;        
+
+      // The API always responds with success:true, even when the user
+      // doesn't exist — a not-found result still has success:true, just
+      // with `data` as an error *string* (e.g. "erorr-Data not found
+      // against User...") instead of a user object. Checking success alone
+      // would treat that string as userData and crash trying to decrypt
+      // userData.password, so this also requires data to actually be an
+      // object before treating it as a found user.
+      if (res.data?.success && res.data.data && typeof res.data.data === 'object') {
+        const userData = res.data.data;
+
         const decryptedPassword = decrypt(userData.password);
         
+        console.log(decryptedPassword);
 
         // Check for default password BEFORE login
-        if (decryptedPassword === "Tspl@#202401") {
-          setResetMode({ user: userData });
-          setAlertMessage('Please reset your default password');
-          setAlertType('info');
-          return;
-        }
+        // if (decryptedPassword === "Tspl@#202401") {
+        //   setResetMode({ user: userData });
+        //   setAlertMessage('Please reset your default password');
+        //   setAlertType('info');
+        //   return;
+        // }
 
         const success = await login(userData, password);
 
@@ -126,9 +134,18 @@ export default function TabsLayout() {
         setAlertType('error');
       }
     } catch (error : any) {
-      const err = error?.response?.data?.Data?.ErrorInfo;
-      console.error('Login error:', err);
-      setAlertMessage(`${err.Key} : ${err.Message}`);
+      // Only ASP.NET's structured validation-error shape has Data.ErrorInfo
+      // — any other failure (network error, timeout, a differently-shaped
+      // backend error) leaves errorInfo undefined, and `${err.Key}` on that
+      // would throw a second, more confusing error right here in the catch
+      // block, masking whatever actually went wrong.
+      const errorInfo = error?.response?.data?.Data?.ErrorInfo;
+      console.error('Login error:', error);
+      if (errorInfo?.Key || errorInfo?.Message) {
+        setAlertMessage(`${errorInfo.Key ?? ''} : ${errorInfo.Message ?? ''}`.trim());
+      } else {
+        setAlertMessage(error?.message || 'Login failed. Please try again.');
+      }
       setAlertType('error');
     } finally {
       setAlertVisible(true);
