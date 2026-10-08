@@ -38,13 +38,25 @@ export function SearchableSelect({
   disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  // The search box's own text, separate from the committed `value` — typing
+  // only narrows the list below (via .includes(), so it matches the typed
+  // text anywhere in an option: start, middle, or end), and only tapping a
+  // result actually calls onChangeValue. Previously the search TextInput
+  // called onChangeValue directly on every keystroke, which committed
+  // whatever partial text was typed as the real selected value immediately
+  // — e.g. typing "26F" into the Sample ID field set sampleId to "26F" on
+  // the very first keystroke, firing every side effect tied to a real
+  // Sample ID change (recorded-weights lookup, Dish Number reset, ...)
+  // before the operator had picked anything.
+  const [query, setQuery] = useState("");
 
-  const filtered = value.trim()
-    ? options.filter((option) => option.toLowerCase().includes(value.trim().toLowerCase()))
+  const filtered = query.trim()
+    ? options.filter((option) => option.toLowerCase().includes(query.trim().toLowerCase()))
     : options;
 
   const openPicker = () => {
     if (disabled) return;
+    setQuery("");
     setIsOpen(true);
     onOpen?.();
   };
@@ -89,8 +101,8 @@ export function SearchableSelect({
 
             <TextInput
               style={styles.searchInput}
-              value={value}
-              onChangeText={onChangeValue}
+              value={query}
+              onChangeText={setQuery}
               placeholder={placeholder}
               placeholderTextColor={colors.textMuted}
               autoFocus

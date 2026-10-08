@@ -151,6 +151,19 @@ export default function SampleWeighingScreen() {
     setDishNumber("");
   };
 
+  // After a successful submit, the operator is very likely about to weigh
+  // another sample for the same Date/Type (e.g. working through today's
+  // COAL samples one at a time) — only the sample-specific fields get
+  // cleared, so Date/Type don't have to be re-picked for every single
+  // sample. resetForm (above) is still used for the connection-lost case,
+  // where everything including Date/Type is cleared.
+  const resetAfterSubmit = () => {
+    setWeights(WEIGHT_SLOTS.map((key) => ({ key, value: null, unit: null, time: null })));
+    setSampleId("");
+    setParameter("");
+    setDishNumber("");
+  };
+
   // The live balance feed is what "Get Weight" reads from — once an
   // established connection drops, any weights already captured (and the
   // sample being worked on) can't be trusted to still be current, so the
@@ -225,6 +238,7 @@ export default function SampleWeighingScreen() {
     setParameter("");
     setSampleId("");
     setWeights(WEIGHT_SLOTS.map((key) => ({ key, value: null, unit: null, time: null })));
+    setDishNumber("");
   };
 
   // Parameter changed — Sample ID is scoped to Type AND Parameter, so a
@@ -235,10 +249,12 @@ export default function SampleWeighingScreen() {
     setParameter(value);
     setSampleId("");
     setWeights(WEIGHT_SLOTS.map((key) => ({ key, value: null, unit: null, time: null })));
+    setDishNumber("");
   };
 
-  // Pre-fills W1-W4 from a prior submission for this exact Sample ID + Type
-  // + Parameter (pulled from tRakeNo, via extractRecordedWeights), rather
+  // Pre-fills W1-W4 (and the Dish Number, if that prior submission recorded
+  // one) from a prior submission for this exact Sample ID + Type +
+  // Parameter (pulled from tRakeNo, via extractRecordedWeights), rather
   // than leaving the fields blank — the operator sees what's already been
   // recorded instead of always starting from "No reading yet". Resets to
   // blank when there's no prior record (or no Sample ID at all), so
@@ -254,6 +270,7 @@ export default function SampleWeighingScreen() {
         return { key, value: String(recorded[field]), unit: null, time: formatZTimestamp(recorded.erdat, recorded.erzet) };
       })
     );
+    setDishNumber(recorded?.disH_NUMBER ?? "");
   };
 
   // Sample ID changed — Type and Parameter are already selected (that's
@@ -427,7 +444,7 @@ export default function SampleWeighingScreen() {
         reference: `${now.toLocaleDateString()} · ${now.toLocaleTimeString()}`,
       });
 
-      resetForm();
+      resetAfterSubmit();
     } catch (err) {
       setSubmissionResult({
         status: "error",

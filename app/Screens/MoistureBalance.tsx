@@ -144,6 +144,19 @@ export default function MoistureWeighingScreen() {
     setDishNumber("");
   };
 
+  // After a successful submit, the operator is very likely about to record
+  // another sample for the same Date (Type is fixed on this screen anyway)
+  // — only the sample-specific fields get cleared, so Date doesn't have to
+  // be re-picked for every single sample. resetForm (above) is still used
+  // for the connection-lost case, where everything including Date is
+  // cleared.
+  const resetAfterSubmit = () => {
+    setResult({ key: RESULT_LABEL, value: null, unit: null, time: null });
+    setSampleId("");
+    setParameter("");
+    setDishNumber("");
+  };
+
   // The live balance feed is what "Get Result" reads from — once an
   // established connection drops, any result already captured (and the
   // sample being worked on) can't be trusted to still be current, so the
@@ -209,9 +222,11 @@ export default function MoistureWeighingScreen() {
     setParameter(value);
     setSampleId("");
     setResult({ key: RESULT_LABEL, value: null, unit: null, time: null });
+    setDishNumber("");
   };
 
-  // Pre-fills the result from a prior submission for this exact Sample ID +
+  // Pre-fills the result (and the Dish Number, if that prior submission
+  // recorded one) from a prior submission for this exact Sample ID +
   // Parameter (Type is fixed) — pulled from tRakeNo's zresult via
   // extractRecordedWeights — rather than leaving the field blank. Resets to
   // blank when there's no prior record (or no Sample ID at all), so
@@ -223,6 +238,7 @@ export default function MoistureWeighingScreen() {
         ? { key: RESULT_LABEL, value: String(recorded.zresult), unit: null, time: formatZTimestamp(recorded.erdat, recorded.erzet) }
         : { key: RESULT_LABEL, value: null, unit: null, time: null }
     );
+    setDishNumber(recorded?.disH_NUMBER ?? "");
   };
 
   // Sample ID changed — Type and Parameter are already selected (that's
@@ -385,7 +401,7 @@ export default function MoistureWeighingScreen() {
         reference: `${now.toLocaleDateString()} · ${now.toLocaleTimeString()}`,
       });
 
-      resetForm();
+      resetAfterSubmit();
     } catch (err) {
       setSubmissionResult({
         status: "error",
